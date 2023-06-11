@@ -1,8 +1,8 @@
-# llama.cpp serve Playground🦙
+# llama.cpp server Playground🦙
 
 A very simple playground inpired on Open-AI playground for llama.cpp http server usage.
 
-server.cpp: https://github.com/ggerganov/llama.cpp/blob/master/examples/server/server.cpp
+server.cpp: https://github.com/ggerganov/llama.cpp/tree/master/examples/server
 
 ### Screenshot
  ![Image](https://i.ibb.co/6gJXCCD/screenshot.png)

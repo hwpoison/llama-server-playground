@@ -9,7 +9,7 @@
         <h2 class="flex justify-start text-xl font-bold mb-4">LLaMA Playground<div :class="{ 'hidden' : !completionInProgress }"><svg fill="rgb(20 184 166)" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle class="spinner_I8Q1" cx="4" cy="12" r="1.5"/><circle class="spinner_I8Q1 spinner_vrS7" cx="12" cy="12" r="3"/><circle class="spinner_I8Q1"  cx="20" cy="12" r="1.5"/></svg></div></h2>
 
         <!-- Prompt Area -->
-        <textarea ref="promptBoxArea" v-model="promptBoxContent" class="w-full h-full resize-none p-4 border-2 rounded-md border-neutral-300 outline-none" placeholder="Put your prompt..."></textarea>
+        <textarea ref="promptBoxArea" v-model="promptBoxContent" class="w-full h-full resize-none p-4 border-2 rounded-md duration-500 border-neutral-300 outline-none" placeholder="Put your prompt..."></textarea>
       </div>
 
       <!-- Settings panel -->
@@ -82,15 +82,40 @@
 
   <div class="flex">
     <div class="flex p-2 pt-4 pl-4">
-      <!-- Botón Submit en la parte inferior -->
+
+      <!-- Undo button -->
+      <button class="bg-teal-500 hover:bg-teal-700 duration-300 text-white mr-2 font-light px-2 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
+      :class="{ 'opacity-50': completionInProgress }"
+      @click="undoCompletion()">
+        <div class="w-5 h-5 ">
+          <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"></path>
+          </svg>
+        </div>
+      </button>
+
+      <!-- Retry button -->
+      <button class="bg-teal-500 hover:bg-teal-700 duration-300 text-white mr-2 font-light px-2 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
+      :class="{ 'opacity-50': completionInProgress }"
+      @click="retryCompletion()">
+        <div class="w-5 h-5 ">
+            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"></path>
+            </svg>
+        </div>
+      </button>
+
+
+      <!-- Submit button -->
       <button class="bg-teal-500 hover:bg-teal-700 duration-300 text-white font-light py-1 px-4 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
       :class="{ 'opacity-50': completionInProgress }"
       @click="completionInProgress ? stopCompletion() : startCompletion()">
       {{ completionInProgress ? "Cancel" : "Submit" }}
       </button>
+
       <p class="pl-4 align-middle text-red-600" :class="{ 'visible': errorMessage }"> {{ errorMessage }} </p>
     </div>
-    <p class="absolute mt-4 right-10">More information on: <a href="https://github.com/ggerganov/llama.cpp/tree/master/examples/server" target="_blank">llama.cpp/server</a></p>
+    <p class="absolute mt-4 right-10"><a href="https://github.com/ggerganov/llama.cpp/tree/master/examples/server" target="_blank">https://github.com/ggerganov/llama.cpp</a></p>
   </div>
 </template>
 
@@ -110,6 +135,7 @@ export default {
     const promptBoxArea = ref()
     const completionInProgress = ref(false);
     const errorMessage = ref("")
+    const completionHistory = ref([])
 
     // parameters
     const p_batch_size = ref(512)
@@ -124,6 +150,18 @@ export default {
     const p_interactive = ref(false)
     const p_threads = ref(2)
 
+    const undoCompletion = () => {
+      if(completionHistory.value.length){
+        promptBoxContent.value = completionHistory.value.pop()
+        console.info("[+] Undo completion")
+      }
+    }
+
+    const retryCompletion = () => {
+      stopCompletion()
+      undoCompletion()
+      startCompletion()
+    }
 
     const completionModeOn = () => {
         promptBoxArea.value.disabled = true
@@ -189,7 +227,9 @@ export default {
     }
 
     async function startCompletion () {
+      completionHistory.value.push(promptBoxContent.value)
       errorMessage.value = ''
+
       const data = {
         prompt:promptBoxContent.value,
         batch_size: p_batch_size.value,
@@ -253,8 +293,10 @@ export default {
       samplePrompts,
       promptSamples,
       stopCompletion,
+      undoCompletion,
       clearAll,
       errorMessage,
+      retryCompletion,
 
       // Parameters
       p_batch_size,
