@@ -1,28 +1,26 @@
 <template>
-  <div  class="lg:h-[91vh] h-[85vh] cursor-default" 
-  @keyup.ctrl.enter="getStreamCompletion()"
+  <div  class="inset-0 lg:h-[91vh] h-[85vh] cursor-default" 
+  @keyup.ctrl.enter="startCompletion()"
   @keyup.alt.c="stopCompletion()"
   @keyup.alt.l="clearAll()"
   >
-
-
-    <div class="flex h-full">
+    <div class="flex h-full ">
       <div class="flex-grow w-full h-full pb-10 bg-gray-50 p-4">
-        <h2 class="flex justify-start text-xl font-bold mb-4">LLaMA Playground<div :class="{ 'hidden' : !completing }"><svg fill="rgb(20 184 166)" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle class="spinner_I8Q1" cx="4" cy="12" r="1.5"/><circle class="spinner_I8Q1 spinner_vrS7" cx="12" cy="12" r="3"/><circle class="spinner_I8Q1"  cx="20" cy="12" r="1.5"/></svg></div></h2>
+        <h2 class="flex justify-start text-xl font-bold mb-4">LLaMA Playground<div :class="{ 'hidden' : !completionInProgress }"><svg fill="rgb(20 184 166)" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle class="spinner_I8Q1" cx="4" cy="12" r="1.5"/><circle class="spinner_I8Q1 spinner_vrS7" cx="12" cy="12" r="3"/><circle class="spinner_I8Q1"  cx="20" cy="12" r="1.5"/></svg></div></h2>
 
         <!-- Prompt Area -->
         <textarea ref="promptBoxArea" v-model="promptBoxContent" class="w-full h-full resize-none p-4 border-2 rounded-md border-neutral-300 outline-none" placeholder="Put your prompt..."></textarea>
       </div>
 
       <!-- Settings panel -->
-      <div class="w-1/4 p-4 bg-gray-50  overflow-auto ">
+      <div class="w-1/4 p-4 bg-gray-50 overflow-y-scroll hidden md:block ">
         <h2 class="text-xl font-bold mb-4">Settings</h2>
+        <div class="">
+          <div class="bg-indigo-50 rounded-lg p-3">
 
-        <div class="pt-4">
-          <div class="bg-indigo-50 rounded p-3">
             <!-- Preset select -->
             <h1 class="font-light pt-2">Prompt samples</h1>
-            <select class="w-4/5   block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none w- focus:ring-indigo-500" @change="handlePresets($event)">
+            <select class="w-4/5   block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none w- focus:ring-indigo-500" @change="promptSamples($event)">
               <option v-for="value, key in samplePrompts" :value="value.value" :key="value.value">{{ key }}</option>
             </select>
             <h1 class="font-light pt-2">Stop word</h1>
@@ -34,14 +32,15 @@
             <input data-popover-target="p_injert_end" v-model="p_injertion_end" type="text" class="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm w-4/5 focus:outline-none focus:ring-indigo-500">
 
             <PopOver target="p_interactive_mode" title="Interactive mode" message="The completion stops when a stop word is detected."></PopOver>
-            <div data-popover-target="p_interactive_mode" class="flex items-center">
-              <input   type="checkbox" v-model="p_interactive" id="checkbox" class="form-checkbox  text-indigo-500 h-4 w-4">
+            <div data-popover-target="p_interactive_mode" class="flex items-center pt-3 ">
+              <input type="checkbox" v-model="p_interactive" id="checkbox" class="form-checkbox  text-indigo-500 h-4 w-4">
               <label for="checkbox" class="align-middle ml-2">Interactive mode</label>
             </div>
           </div>
         </div>  
+
         <div class="py-3">
-          <div class="bg-indigo-50  rounded p-3">
+          <div class="bg-indigo-50  rounded-lg p-3">
             <!-- temperature -->
             <h1 class="font-light pt-2">Temperature</h1>
             <PopOver target="n_p_temperature" title="Temperature" message="Control the randomness or creativity."></PopOver>
@@ -79,23 +78,20 @@
         </div>
       </div>
     </div>
-    
-
   </div>
 
-    <div class="flex">
-      <div class="flex p-2 pt-4 pl-4">
-        <!-- Botón Submit en la parte inferior -->
-        <button class="bg-teal-500 hover:bg-teal-700 duration-300 text-white font-light py-1 px-4 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
-        :class="{ 'opacity-50': completing }"
-        @click="completing ? stopCompletion() : getStreamCompletion()">
-        {{ completing ? "Cancel" : "Submit" }}
-
-        </button>
-      </div>
-      <p class="absolute mt-4 right-10">More information on: <a href="https://github.com/ggerganov/llama.cpp/tree/master/examples/server" target="_blank">llama.cpp/server</a></p>
+  <div class="flex">
+    <div class="flex p-2 pt-4 pl-4">
+      <!-- Botón Submit en la parte inferior -->
+      <button class="bg-teal-500 hover:bg-teal-700 duration-300 text-white font-light py-1 px-4 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
+      :class="{ 'opacity-50': completionInProgress }"
+      @click="completionInProgress ? stopCompletion() : startCompletion()">
+      {{ completionInProgress ? "Cancel" : "Submit" }}
+      </button>
+      <p class="pl-4 align-middle text-red-600" :class="{ 'visible': errorMessage }"> {{ errorMessage }} </p>
     </div>
-
+    <p class="absolute mt-4 right-10">More information on: <a href="https://github.com/ggerganov/llama.cpp/tree/master/examples/server" target="_blank">llama.cpp/server</a></p>
+  </div>
 </template>
 
 <script>
@@ -109,33 +105,52 @@ export default {
     PopOver
   },
   setup(props){
+
     const promptBoxContent = ref("")
     const promptBoxArea = ref()
-    const completing = ref(false);
+    const completionInProgress = ref(false);
+    const errorMessage = ref("")
 
     // parameters
-    const p_batch_size = ref(128)
+    const p_batch_size = ref(512)
     const p_temperature = ref(0.1)
     const p_top_k = ref(40)
     const p_top_p = ref(0.9)
     const p_n_keep = ref(0)
-    const p_n_predict = ref(20)
+    const p_n_predict = ref(70)
     const p_as_loop = ref(true)
     const p_stop_words = ref("### Human:")
-    const p_interactive = ref(false)
     const p_injertion_end = ref("### Human:")
-    const p_threads = ref(4)
-    const switchGeneratingMode = () => {
-        promptBoxArea.value.disabled = !promptBoxArea.value.disabled
-        completing.value = !completing.value
+    const p_interactive = ref(false)
+    const p_threads = ref(2)
+
+
+    const completionModeOn = () => {
+        promptBoxArea.value.disabled = true
+        completionInProgress.value = true
     }
 
-    const stopCompletion = ()=>{
-      if(completing.value){
-        switchGeneratingMode()
-        console.info("[!] Completion stopped")
-      }else{
+    const completionModeOff = () => {
+        promptBoxArea.value.disabled = false
+        completionInProgress.value = false
+    }
+
+    async function stopCompletion() {
+      if(!completionInProgress.value){
         console.info("[?] No completion in progress.")
+        return false
+      }
+
+      try {
+        console.info("[!] Sending stop signal")
+        const response = await fetch('/next-token?stop=true', { method:'GET'})
+        if(response?.ok){
+          console.log("[!] Completion stopped by user")
+          completionModeOff()
+        }
+      } catch(error) {
+        console.error("[x] Error requesting stop:", error)
+        return false
       }
     }
 
@@ -147,19 +162,34 @@ export default {
     const clearAll = ()=> {
       promptBoxContent.value = ""
     }
+
     const splitSequence = (input) => {
       const words = input.length>0?input.split(','):[]
       return words;
     }
 
-    const handlePresets = (event) => {
+    const promptSamples = (event) => {
       const presetKey = event.target.value
       console.log("[!] Selected preset prompt", presetKey)
-
       promptBoxContent.value = samplePrompts[presetKey]
-
     }
-    async function getStreamCompletion () {
+
+    async function fetchNextToken() {
+      try {
+        const response = await fetch('/api/next-token', { method: 'GET' });
+        if (!response?.ok) {
+          console.error("[x] Error fetching next token:", response);
+          return null;
+        }
+        return await response.json();
+      } catch (error) {
+        console.error("[x] Error:", error);
+        return null;
+      }
+    }
+
+    async function startCompletion () {
+      errorMessage.value = ''
       const data = {
         prompt:promptBoxContent.value,
         batch_size: p_batch_size.value,
@@ -176,50 +206,56 @@ export default {
       if(p_interactive.value){
         data.stop = splitSequence(p_stop_words.value)
       }
-      switchGeneratingMode()
+
       try {
         console.info("[!] Sending Prompt...", data)
         const response = await fetch('/api/completion', { method:'POST', body: JSON.stringify(data) })
+        if(response?.ok){
+          completionInProgress.value = true 
+          completionModeOn()
+        }else{
+          console.error("[x] Bad request:", response, data)
+          errorMessage.value = response.statusText
+        }
       } catch(error){
-        console.error("[x] Error requesting completion.")
+        console.error("[x] Error requesting completion:", error)
+        errorMessage.value = error
         return false
       }
-      console.info("[!] Completing in progress...")
 
-      while(completing.value){
-        try {
-          const response = await fetch('/api/next-token', {method:'GET'})
-          if(response?.ok){
-            const result =  await response.json();
-            promptBoxContent.value += result.content
-            scrollTextAreaToBottom()
-            // Check prompt stream stop
-            if(result.stop){
-              switchGeneratingMode()
-              console.info("[!] Completion finished.")
-              if(p_interactive.value){
-                promptBoxContent.value += p_injertion_end.value
-              }
-              promptBoxArea.value.focus()
-              break;
-            }
-          }else{
-              console.error("[x] Error on token-streaming caused by:", response.statusText)
-              break;
+      console.info("[!] Completion in progress...")
+      while(completionInProgress.value){
+          const result = await fetchNextToken()
+          if(!result){
+            completionModeOff()
+            return false  
           }
-        } catch(error){
-          console.error("[x] Error:", error)
-          break;
-        }
+          promptBoxContent.value += result.content
+
+          // Check prompt stream stop
+          if(result.stop){
+            completionModeOff()
+            console.info("[!] Completion finished.")
+            if(p_interactive.value){
+              promptBoxContent.value += p_injertion_end.value
+            }
+            promptBoxArea.value.focus()
+            return true
+          }
       }
     }
 
     return {
-      getStreamCompletion,
+      startCompletion,
       promptBoxContent,
       promptBoxArea,
-      completing,
+      completionInProgress,
       samplePrompts,
+      promptSamples,
+      stopCompletion,
+      clearAll,
+      errorMessage,
+
       // Parameters
       p_batch_size,
       p_temperature,
@@ -232,14 +268,25 @@ export default {
       p_stop_words,
       p_interactive,
       p_interactive,
-      p_injertion_end,
-      handlePresets,
-      stopCompletion,
-      clearAll
+      p_injertion_end
     }
   }
 }
 </script>
 <style>
-.spinner_I8Q1{animation:spinner_qhi1 .75s linear infinite}.spinner_vrS7{animation-delay:-.375s}@keyframes spinner_qhi1{0%,100%{r:1.5px}50%{r:3px}}
+.spinner_I8Q1{
+  animation:spinner_qhi1 .75s linear infinite
+}
+.spinner_vrS7{
+  animation-delay:-.375s
+}
+@keyframes spinner_qhi1{
+  0%,
+  100%{
+    r:1.5px
+  }
+  50%{
+    r:3px
+  }
+}
 </style>
