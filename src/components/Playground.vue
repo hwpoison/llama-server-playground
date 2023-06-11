@@ -9,7 +9,7 @@
         <h2 class="flex justify-start text-xl font-bold mb-4">LLaMA Playground<div :class="{ 'hidden' : !completionInProgress }"><svg fill="rgb(20 184 166)" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle class="spinner_I8Q1" cx="4" cy="12" r="1.5"/><circle class="spinner_I8Q1 spinner_vrS7" cx="12" cy="12" r="3"/><circle class="spinner_I8Q1"  cx="20" cy="12" r="1.5"/></svg></div></h2>
 
         <!-- Prompt Area -->
-        <textarea ref="promptBoxArea" v-model="promptBoxContent" class="w-full h-full resize-none p-4 border-2 rounded-md duration-500 border-neutral-300 outline-none" placeholder="Put your prompt..."></textarea>
+        <textarea ref="promptBoxArea" v-model="promptBoxContent" class="w-full h-full resize-none p-4 border-2 rounded-md duration-500 border-teal-500  focus:ring-teal-500 focus:border-teal-600 focus:outline-0" placeholder="Write something..."></textarea>
       </div>
 
       <!-- Settings panel -->
@@ -209,6 +209,7 @@ export default {
     const promptSamples = (event) => {
       const presetKey = event.target.value
       console.log("[!] Selected preset prompt", presetKey)
+      completionHistory.value = []
       promptBoxContent.value = samplePrompts[presetKey]
     }
 
@@ -248,7 +249,7 @@ export default {
       }
 
       try {
-        console.info("[!] Sending Prompt...", data)
+        console.info("[!] Submiting prompt...", data)
         const response = await fetch('/api/completion', { method:'POST', body: JSON.stringify(data) })
         if(response?.ok){
           completionInProgress.value = true 
@@ -263,26 +264,27 @@ export default {
         return false
       }
 
-      console.info("[!] Completion in progress...")
+      console.info("[!] Fetching tokens...")
       while(completionInProgress.value){
           const result = await fetchNextToken()
           if(!result){
             completionModeOff()
-            return false  
+            break
           }
           promptBoxContent.value += result.content
 
           // Check prompt stream stop
           if(result.stop){
             completionModeOff()
-            console.info("[!] Completion finished.")
+            
             if(p_interactive.value){
               promptBoxContent.value += p_injertion_end.value
             }
             promptBoxArea.value.focus()
-            return true
+            break
           }
       }
+      console.info("[!] Completion finished.")
     }
 
     return {
@@ -331,4 +333,6 @@ export default {
     r:3px
   }
 }
+
+
 </style>
