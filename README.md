@@ -1,22 +1,28 @@
 # llama.cpp serve Playground🦙
 
-A simple playground inpired on Open-AI playground for llama.cpp http server usage.
+A very simple playground inpired on Open-AI playground for llama.cpp http server usage.
 
-# Vue 3 + TypeScript + Vite
+server.cpp: https://github.com/ggerganov/llama.cpp/blob/master/examples/server/server.cpp
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+### Screenshot
+ ![Image](https://i.ibb.co/HKFNH2K/screenshot.png)
 
-## Recommended IDE Setup
+### Configure proxy address
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+Edit the vite.config.ts and change the "target" value for the llama.cpp server ip. By default serve.cpp uses http://127.0.0.1:8080.
 
-## Type Support For `.vue` Imports in TS
+### How to run
+#### Install dependences
+```
+npm install
+```
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin) to make the TypeScript language service aware of `.vue` types.
+#### Launch server
+```
+npm run dev
+```
 
-If the standalone TypeScript plugin doesn't feel fast enough to you, Volar has also implemented a [Take Over Mode](https://github.com/johnsoncodehk/volar/discussions/471#discussioncomment-1361669) that is more performant. You can enable it by the following steps:
-
-1. Disable the built-in TypeScript Extension
-   1. Run `Extensions: Show Built-in Extensions` from VSCode's command palette
-   2. Find `TypeScript and JavaScript Language Features`, right click and select `Disable (Workspace)`
-2. Reload the VSCode window by running `Developer: Reload Window` from the command palette.
+#### Compiles and minifies for production
+```
+npm run build
+```

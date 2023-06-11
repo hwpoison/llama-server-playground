@@ -19,36 +19,36 @@
         <h2 class="text-xl font-bold mb-4">Settings</h2>
 
         <!-- Preset select -->
-        <h1 class="text-center font-light pt-2">Prompt styles</h1>
-        <select class="text-center block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500" @change="handlePresets($event)">
+        <h1 class="font-light pt-2">Prompt styles</h1>
+        <select class="w-4/5   block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none w- focus:ring-indigo-500" @change="handlePresets($event)">
           <option v-for="value, key in presets" :value="value.value" :key="value.value">{{ key }}</option>
         </select>
 
         <!-- temperature -->
-        <h1 class="text-center font-light pt-2">Temperature</h1>
-        <input v-model="p_temperature" type="number" step="0.1" min="0" max="1"  class="appearance-none block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
+        <h1 class="font-light pt-2">Temperature</h1>
+        <input v-model="p_temperature" type="number" step="0.1" min="0" max="1"  class="appearance-none block w-full py-2 px-3  w-4/5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
         
         <!-- n_predict  -->
-        <h1 class="text-center font-light pt-2">n_predict</h1>
-        <input v-model="p_n_predict" type="number" step="1" min="0" max="2048"  class="appearance-none block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
+        <h1 class="font-light pt-2">n_predict</h1>
+        <input v-model="p_n_predict" type="number" step="1" min="0" max="2048"  class="appearance-none block w-full py-2 px-3 w-4/5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
 
         
         <!-- top_k  -->
-        <h1 class="text-center font-light pt-2">top_k</h1>
-        <input v-model="p_top_k" type="number" step="1" min="0" max="2048"  class="appearance-none block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
+        <h1 class="font-light pt-2">top_k</h1>
+        <input v-model="p_top_k" type="number" step="1" min="0" max="2048"  class="appearance-none block w-full py-2 px-3 border w-4/5 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
 
         <!-- top_p  -->
-        <h1 class="text-center font-light pt-2">top_p</h1>
-        <input v-model="p_top_p" type="number" step="1" min="0" max="2048"  class="appearance-none block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
+        <h1 class="font-light pt-2">top_p</h1>
+        <input v-model="p_top_p" type="number" step="1" min="0" max="2048"  class="appearance-none block w-full py-2 px-3 border w-4/5 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
 
         <!-- batch_size  -->
-        <h1 class="text-center font-light pt-2">batch_size</h1>
-        <input v-model="p_batch_size" type="number" step="1" min="0" max="2048"  class="appearance-none block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
+        <h1 class="font-light pt-2">batch_size</h1>
+        <input v-model="p_batch_size" type="number" step="1" min="0" max="2048"  class="appearance-none block w-full py-2 px-3 w-4/5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
 
-        <h1 class="text-center font-light pt-2">Stop sequences</h1>
-        <input v-model="p_stop_words" type="text" class="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500">
-          <h1 class="text-center font-light pt-2">Injert at end</h1>
-        <input v-model="p_injertion_end" type="text" class="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500">
+        <h1 class="font-light pt-2">Stop sequences</h1>
+        <input v-model="p_stop_words" type="text" class="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm w-4/5 focus:outline-none focus:ring-indigo-500">
+          <h1 class="font-light pt-2">Injert at end</h1>
+        <input v-model="p_injertion_end" type="text" class="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm w-4/5 focus:outline-none focus:ring-indigo-500">
 
         <div class="flex items-center">
           <input type="checkbox" v-model="p_interactive" id="checkbox" class="form-checkbox  text-indigo-500 h-4 w-4">
