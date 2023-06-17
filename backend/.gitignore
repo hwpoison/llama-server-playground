@@ -1,0 +1,5 @@
+*.exe
+*.lnk
+*.txt
+.vscode
+model/*.bin

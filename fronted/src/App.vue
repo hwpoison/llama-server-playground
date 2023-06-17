@@ -3,7 +3,7 @@
 </template>
 <script setup lang="ts">
   import Playground from './components/Playground.vue'
-  console.log("[<>] llama-playground initialized.")
+  console.log("🖖 llama-playground initialized.")
 </script>
 
 <style>

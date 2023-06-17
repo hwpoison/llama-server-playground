@@ -1,5 +1,5 @@
 <template>
-  <div class="inset-0 lg:h-[91vh] h-[85vh] cursor-default" @keyup.ctrl.enter="doCompletion()"
+  <div class="inset-0 lg:h-[91vh] h-[81vh] cursor-default" @keyup.ctrl.enter="doCompletion()"
     @keyup.alt.c="stopCompletion()" @keyup.alt.l="clearAll()">
     <div class="flex h-full ">
       <div class="flex-grow w-full h-full pb-10 bg-gray-50 p-4">
@@ -150,13 +150,13 @@
 
       <p class="pl-4 align-middle text-red-600" :class="{ 'visible': errorMessage }"> {{ errorMessage }} </p>
     </div>
-    <p class="absolute mt-4 right-10"><a href="https://github.com/ggerganov/llama.cpp/tree/master/examples/server"
+    <p class="absolute mt-4 right-10 hidden md:block "><a href="https://github.com/ggerganov/llama.cpp/tree/master/examples/server"
         target="_blank">https://github.com/ggerganov/llama.cpp</a></p>
   </div>
 </template>
 
 <script>
-import { nextTick, ref, reactive } from 'vue'
+import { nextTick, ref, reactive, onMounted } from 'vue'
 import { samplePrompts } from "../utils/samplePrompts";
 import PopOver from "../components/PopOver.vue"
 
@@ -167,17 +167,19 @@ export default {
   },
   setup(props) {
 
-    const defaultInterjectWord = "### Human"
+    const defaultInterjectWord = "### Human:"
     const promptBoxContent = ref("")
     const promptBoxArea = ref()
     const completionInProgress = ref(false);
     const errorMessage = ref("")
+    const fetchingToken = ref(false)
     const completionHistory = ref([])
+    const sessionId = ref(undefined)
 
     // parameters
     const promptParams = reactive({
       batch_size: 512,
-      temperature: 0.1,
+      temperature: 0.8,
       top_k: 40,
       top_p: 0.9,
       n_keep: 0,
@@ -193,11 +195,12 @@ export default {
       if (completionHistory.value.length) {
         stopCompletion()
         promptBoxContent.value = completionHistory.value.pop()
-        console.info("[+] Undo completion")
+        console.info("⏪ Undo completion")
       }
     }
 
     function retryCompletion() {
+      console.log("🔁 Retry")
       stopCompletion()
       undoCompletion()
       doCompletion()
@@ -219,9 +222,10 @@ export default {
         return false
       }
 
-      try {
-        console.info("[!] Sending stop signal")
-        const response = await sendRequest('/api/next-token?stop=true', 'GET')
+      completionModeOff()
+      //try {
+      //  console.info("[!] Sending stop signal")
+        /*const response = await sendRequest('/api/0/next-token?stop=true', 'GET')
         if (response?.ok) {
           console.log("[!] Completion stopped by user")
           completionModeOff()
@@ -229,7 +233,7 @@ export default {
       } catch (error) {
         console.error("[x] Error requesting stop:", error)
         return false
-      }
+      }*/
     }
 
     async function scrollTextAreaToBottom() {
@@ -267,36 +271,37 @@ export default {
       }
 
       if (promptParams.interactive) {
-        completionRequestBody.stop = splitSequence(stop_words.value)
+        completionRequestBody.stop = splitSequence(promptParams.stop_words)
       }
 
       return completionRequestBody;
     }
 
     async function submitPrompt() {
-      promptBoxContent.value = promptBoxContent.value
       completionHistory.value.push(promptBoxContent.value)
       errorMessage.value = ''
 
       const requestBody = buildCompletionRequest()
 
       try {
-        console.info("[!] Submiting params:", requestBody)
         stopCompletion()
-        const request = await sendRequest('/api/completion', 'POST', requestBody)
+        completionModeOn()
+        console.info("📨 Submiting params:", requestBody)
+        const request = await sendRequest(`/api/${sessionId.value}/completion`, 'POST', requestBody)
         const result = await request.json()
         if (request?.ok) {
           completionModeOn()
+          return true
         } else {
-          console.error("[x] Bad request:", result.reason)
+          console.error("❌ Bad request:", result.reason)
           errorMessage.value = result.reason
         }
       } catch (error) {
-        console.error("[x] Error requesting completion:", error)
+        console.error("❌ Error requesting completion:", error)
         errorMessage.value = "Connection error"
-        return false
+        completionModeOff()
       }
-      return true
+      return false
     }
 
     async function sendRequest(url, method, body) {
@@ -312,44 +317,63 @@ export default {
 
     async function fetchNextToken() {
       try {
-        const response = await sendRequest('/api/next-token', 'GET')
+        const response = await sendRequest(`/api/${sessionId.value}/next-token`, 'GET')
         if (!response?.ok) {
-          console.error("[x] Error fetching next token:", response)
+          console.error("❌ Error fetching next token:", response.json())
           return null;
         }
-        return response.json();
+        let result = await response.json()
+        return result
       } catch (error) {
-        console.error("[x] Error:", error)
-        return null;
+        console.error("❌ Error:", error)
       }
+      return null;
     }
 
     async function doCompletion() {
       const submited = await submitPrompt()
       if (!submited) return
-
-      console.info("[.] Fetching tokens...")
+      console.info("↺ Prompt submited, now fetching tokens...")
       while (completionInProgress.value) {
-        const result = await fetchNextToken()
-        if (!result) {
-          completionModeOff()
-          break
-        }
-        promptBoxContent.value += result.content
-
-        // Check prompt stream stop
-        if (result.stop) {
-          completionModeOff()
-
-          if (promptParams.interactive) {
-            promptBoxContent.value += interjection_word.value
+          const result = await fetchNextToken()
+          if (!result) {
+            completionModeOff()
+            break
           }
+          promptBoxContent.value += result.content
 
-          promptBoxArea.value.focus()
-          break
-        }
+          // Check prompt stream stop
+          if (result.stop) {
+            completionModeOff()
+
+            if (promptParams.interactive) {
+              promptBoxContent.value += promptParams.interjection_word
+            }
+
+            promptBoxArea.value.focus()
+            break
+          }
       }
-      console.info("[_] Completion finished.")
+      console.info("🏁 Completion finished.")
+    }
+
+    const generateSessionId = () => {
+      sessionId.value = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    };
+
+    onMounted(() => {
+        // This is a temporal session id
+        generateSessionId()
+        console.info("Session ID:", sessionId.value)
+        setInterval(ImHere, 5000)
+      });
+
+    function ImHere() {
+      try {
+        const response = fetch(`/api/imhere/${sessionId.value}`, {method:'GET'})
+      }catch (err) {
+
+      }
     }
 
     return {

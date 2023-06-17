@@ -1,28 +1,15 @@
-# llama.cpp server Playground🦙
+# llama.cpp Playground 🦙
 
-A very simple playground inpired on Open-AI playground for llama.cpp http server usage.
-
-server.cpp: https://github.com/ggerganov/llama.cpp/tree/master/examples/server
+A Playground based on server.cpp from llama.cpp for use the llama models. Has a WebUI and you can play with prompts in a easy way.
 
 ### Screenshot
- ![Image](https://i.ibb.co/6gJXCCD/screenshot.png)
-
-### Configure proxy address
-
-Edit the vite.config.ts and change the "target" value for the llama.cpp server ip. By default serve.cpp uses http://127.0.0.1:8080.
+ ![Image](https://i.ibb.co/QXB89gK/screenshot.png)
+* Supports submit, retry, undo and model parameters modification.
 
 ### How to run
-#### Install dependences
 ```
-npm install
-```
-
-#### Launch server
-```
-npm run dev
-```
-
-#### Compiles and minifies for production
-```
-npm run build
+- Install npm and pip dependences following the readmes  
+- Put your model into backend/model folder and setup it into server_config into main.py
+- Run the fronted and backend
+- Go to http://localhost:3762/
 ```
