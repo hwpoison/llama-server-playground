@@ -32,23 +32,21 @@
               <option v-for="value, key in samplePrompts" :value="value.value" :key="value.value">{{ key }}</option>
             </select>
             <h1 class="font-light pt-2">Stop word</h1>
-            <PopOver target="p_stop_sequence" title="Stop Sequences"
-              message="The prompt completion will stop when this value/s are detected. Input split separated with ','">
+            <PopOver target="p_stop_sequence" title="Stop Sequences" :message="promptParams.stop_words.description">
             </PopOver>
-            <input data-popover-target="p_stop_sequence" v-model="promptParams.stop_words" type="text"
+            <input data-popover-target="p_stop_sequence" v-model="promptParams.stop_words.value" type="text"
               class="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm w-4/5 focus:outline-none focus:ring-indigo-500">
 
             <h1 class="font-light pt-2">Injert at end</h1>
-            <PopOver target="p_injert_end" title="Injert at the end"
-              message="After each completion and if interaction mode is checked, this value will be added at the end of the prompt.">
+            <PopOver target="p_injert_end" title="Injert at the end" :message="promptParams.injection_word.description">
             </PopOver>
-            <input data-popover-target="p_injert_end" v-model="promptParams.interjection_word" type="text"
+            <input data-popover-target="p_injert_end" v-model="promptParams.injection_word.value" type="text"
               class="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm w-4/5 focus:outline-none focus:ring-indigo-500">
 
-            <PopOver target="interactive_mode" title="Interactive mode"
-              message="The completion stops when a stop word is detected."></PopOver>
+            <PopOver target="interactive_mode" title="Interactive mode" :message="promptParams.interactive.description">
+            </PopOver>
             <div data-popover-target="interactive_mode" class="flex items-center pt-3 ">
-              <input type="checkbox" v-model="promptParams.interactive" id="checkbox"
+              <input type="checkbox" v-model="promptParams.interactive.value" id="checkbox"
                 class="form-checkbox  text-indigo-500 h-4 w-4">
               <label for="checkbox" class="align-middle ml-2">Interactive mode</label>
             </div>
@@ -59,52 +57,52 @@
           <div class="bg-indigo-50  rounded-lg p-3">
             <!-- temperature -->
             <h1 class="font-light pt-2">Temperature</h1>
-            <PopOver target="n_p_temperature" title="Temperature" message="Control the randomness or creativity.">
+            <PopOver target="n_p_temperature" title="Temperature" :message="promptParams.temperature.description">
             </PopOver>
-            <input data-popover-target="n_p_temperature" v-model="promptParams.temperature" type="number" step="0.1"
+            <input data-popover-target="n_p_temperature" v-model="promptParams.temperature.value" type="number" step="0.1"
               min="0" max="1"
               class="appearance-none block w-full py-2 px-3  w-4/5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
 
             <!-- n_predict  -->
             <h1 class="font-light pt-2">n_predict</h1>
-            <PopOver target="n_p_tooltip" title="Numbers of tokens"
-              message="Numbers of tokens to predict when output is generated."></PopOver>
-            <input data-popover-target="n_p_tooltip" v-model="promptParams.n_predict" type="number" step="1" min="0"
+            <PopOver target="n_p_tooltip" title="Numbers of tokens" :message="promptParams.n_predict.description">
+            </PopOver>
+            <input data-popover-target="n_p_tooltip" v-model="promptParams.n_predict.value" type="number" step="1" min="0"
               max="2048"
               class="appearance-none block w-full py-2 px-3 w-4/5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
 
 
             <!-- top_k  -->
             <h1 class="font-light pt-2">top_k</h1>
-            <PopOver target="n_top_k" title="Top K"
-              message="During each token, select the most probable from K tokens. (defaul: 40)."></PopOver>
-            <input data-popover-target="n_top_k" v-model="promptParams.top_k" type="number" step="1" min="0" max="2048"
+            <PopOver target="n_top_k" title="Top K" :message="promptParams.top_k.description"></PopOver>
+            <input data-popover-target="n_top_k" v-model="promptParams.top_k.value" type="number" step="1" min="0"
+              max="2048"
               class="appearance-none block w-full py-2 px-3 border w-4/5 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
 
             <!-- top_p  -->
             <h1 class="font-light pt-2">top_p</h1>
-            <PopOver target="n_p_top_p" title="Top P"
-              message="Limits the selection of the next token based on the most probable amount over P. (default:0.9)">
+            <PopOver target="n_p_top_p" title="Top P" :message="promptParams.top_p.description">
             </PopOver>
-            <input data-popover-target="n_p_top_p" v-model="promptParams.top_p" type="number" step="1" min="0" max="2048"
+            <input data-popover-target="n_p_top_p" v-model="promptParams.top_p.value" type="number" step="1" min="0"
+              max="2048"
               class="appearance-none block w-full py-2 px-3 border w-4/5 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
 
             <!-- n_keep  -->
             <h1 class="font-light pt-2">n_keep</h1>
-            <input v-model="promptParams.n_keep" type="number" step="1" min="-1" max="2048"
+            <input v-model="promptParams.n_keep.value" type="number" step="1" min="-1" max="2048"
               class="appearance-none block w-full py-2 px-3 border w-4/5 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
 
-            <!-- threads  -->
-            <h1 class="font-light pt-2">threads</h1>
-            <input v-model="promptParams.threads" type="number" step="1" min="1" max="2048"
-              class="appearance-none block w-full py-2 px-3 border w-4/5 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
+            <!-- Mirostate select -->
+            <h1 class="font-light pt-2">Mirostat</h1>
+            <PopOver target="n_p_mirostate" title="Mirostate" :message="promptParams.mirostat.description">
+            </PopOver>
+            <select data-popover-target="n_p_mirostate"
+              class="w-4/5 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none w- focus:ring-indigo-500"
+              @change="promptParams.mirostat.value = parseInt($event.target.value)">
+              <option v-for="value, key in promptParams.mirostat.options" :value="value.value" :key="value.value">{{ key
+              }}</option>
+            </select>
 
-            <!-- batch_size  -->
-            <h1 class="font-light pt-2">batch_size</h1>
-            <PopOver target="n_p_batch_size" title="Batch size" message="Process the set-aside prompt"></PopOver>
-            <input data-popover-target="n_p_batch_size" v-model="promptParams.batch_size" type="number" step="1" min="0"
-              max="2048"
-              class="appearance-none block w-full py-2 px-3 w-4/5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
           </div>
         </div>
       </div>
@@ -140,7 +138,6 @@
         </div>
       </button>
 
-
       <!-- Submit button -->
       <button
         class="bg-teal-500 hover:bg-teal-700 duration-300 text-white font-light py-1 px-4 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -150,7 +147,8 @@
 
       <p class="pl-4 align-middle text-red-600" :class="{ 'visible': errorMessage }"> {{ errorMessage }} </p>
     </div>
-    <p class="absolute mt-4 right-10 hidden md:block "><a href="https://github.com/ggerganov/llama.cpp/tree/master/examples/server"
+    <p class="absolute mt-4 right-10 hidden md:block "><a
+        href="https://github.com/ggerganov/llama.cpp/tree/master/examples/server"
         target="_blank">https://github.com/ggerganov/llama.cpp</a></p>
   </div>
 </template>
@@ -176,19 +174,53 @@ export default {
     const completionHistory = ref([])
     const sessionId = ref(undefined)
 
-    // parameters
+    // prompt parameters
     const promptParams = reactive({
-      batch_size: 512,
-      temperature: 0.8,
-      top_k: 40,
-      top_p: 0.9,
-      n_keep: 0,
-      n_predict: 70,
-      as_loop: true,
-      stop_words: defaultInterjectWord,
-      interjection_word: defaultInterjectWord,
-      interactive: false,
-      threads: 2
+      temperature: {
+        value: 0.8,
+        description: "Control the randomness or creativity."
+      },
+      top_k: {
+        value: 40,
+        description: "During each token, select the most probable from K tokens. (defaul: 40)."
+      },
+      top_p: {
+        value: 0.9,
+        description: "Limits the selection of the next token based on the most probable amount over P. (default:0.9)"
+      },
+      n_keep: {
+        value: 0,
+        description: ""
+      },
+      n_predict: {
+        value: 100,
+        description: "Numbers of tokens to predict when output is generated."
+      },
+      stop_words: {
+        value: defaultInterjectWord,
+        description: "The prompt completion will stop when this value/s are detected. Input split separated with ','"
+      },
+      injection_word: {
+        value: defaultInterjectWord,
+        description: "After each completion and if interaction mode is checked, this value will be added at the end of the prompt."
+      },
+      stream: {
+        value: true,
+        description: "Stream completion"
+      },
+      interactive: {
+        value: false,
+        description: "The completion stops when a stop word is detected."
+      },
+      seed: {
+        value: -1,
+        description: "Set the random number generator (RNG) seed (default: -1, < 0 = random seed)"
+      },
+      mirostat: {
+        value: 0,
+        options: [0, 1, 2],
+        description: "Enable Mirostat sampling, controlling perplexity during text generation (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0)."
+      }
     })
 
     function undoCompletion() {
@@ -221,19 +253,7 @@ export default {
         console.info("[?] No completion in progress.")
         return false
       }
-
       completionModeOff()
-      //try {
-      //  console.info("[!] Sending stop signal")
-        /*const response = await sendRequest('/api/0/next-token?stop=true', 'GET')
-        if (response?.ok) {
-          console.log("[!] Completion stopped by user")
-          completionModeOff()
-        }
-      } catch (error) {
-        console.error("[x] Error requesting stop:", error)
-        return false
-      }*/
     }
 
     async function scrollTextAreaToBottom() {
@@ -259,48 +279,58 @@ export default {
     function buildCompletionRequest() {
       const completionRequestBody = {
         prompt: promptBoxContent.value,
-        batch_size: promptParams.batch_size,
-        temperature: promptParams.temperature,
-        top_k: promptParams.top_k,
-        top_p: promptParams.top_p,
-        n_keep: promptParams.n_keep,
-        n_predict: promptParams.n_predict,
-        threads: promptParams.threads,
-        as_loop: promptParams.as_loop,
-        interactive: promptParams.interactive
+        temperature: promptParams.temperature.value,
+        top_k: promptParams.top_k.value,
+        top_p: promptParams.top_p.value,
+        stop: promptParams.stop_words.value,
+        n_keep: promptParams.n_keep.value,
+        n_predict: promptParams.n_predict.value,
+        stream: promptParams.stream.value,
+        stop: [promptParams.stop_words.value],
+        seed: promptParams.seed.value,
+        mirostat: promptParams.mirostat.value
       }
-
-      if (promptParams.interactive) {
-        completionRequestBody.stop = splitSequence(promptParams.stop_words)
-      }
-
       return completionRequestBody;
     }
 
-    async function submitPrompt() {
+    async function doCompletion() {
       completionHistory.value.push(promptBoxContent.value)
       errorMessage.value = ''
-
       const requestBody = buildCompletionRequest()
-
       try {
         stopCompletion()
         completionModeOn()
         console.info("📨 Submiting params:", requestBody)
-        const request = await sendRequest(`/api/${sessionId.value}/completion`, 'POST', requestBody)
-        const result = await request.json()
-        if (request?.ok) {
-          completionModeOn()
-          return true
-        } else {
-          console.error("❌ Bad request:", result.reason)
-          errorMessage.value = result.reason
-        }
+        const result = await sendRequest(`/api/${sessionId.value}/completion`, 'POST', requestBody).then(response => {
+          console.info("↺ Prompt submited, now fetching completion...")
+          const reader = response.body.getReader();
+          const processStream = ({ done, value }) => {
+            if (done) {
+              if (promptParams.interactive.value) {
+                promptBoxContent.value += promptParams.injection_word.value
+              }
+              console.info("🏁 Completion finished.")
+              return
+            }
+            if (!completionInProgress.value) return
+            const data = new TextDecoder('utf-8').decode(value);
+            const token = JSON.parse(data.substring(6))
+            promptBoxContent.value += token.content
+            scrollTextAreaToBottom()
+            return reader.read().then(processStream)
+          };
+          return reader.read().then(processStream)
+        })
+          .catch(error => {
+            console.error("❌ Error while stream the completion:", error)
+            completionModeOff()
+          });
       } catch (error) {
         console.error("❌ Error requesting completion:", error)
         errorMessage.value = "Connection error"
-        completionModeOff()
       }
+      completionModeOff()
+      promptBoxArea.value.focus()
       return false
     }
 
@@ -309,52 +339,9 @@ export default {
         'method': method
       }
 
-      if (body)
-        params.body = JSON.stringify(body)
+      if (body) params.body = JSON.stringify(body)
 
       return await fetch(url, params);
-    }
-
-    async function fetchNextToken() {
-      try {
-        const response = await sendRequest(`/api/${sessionId.value}/next-token`, 'GET')
-        if (!response?.ok) {
-          console.error("❌ Error fetching next token:", response.json())
-          return null;
-        }
-        let result = await response.json()
-        return result
-      } catch (error) {
-        console.error("❌ Error:", error)
-      }
-      return null;
-    }
-
-    async function doCompletion() {
-      const submited = await submitPrompt()
-      if (!submited) return
-      console.info("↺ Prompt submited, now fetching tokens...")
-      while (completionInProgress.value) {
-          const result = await fetchNextToken()
-          if (!result) {
-            completionModeOff()
-            break
-          }
-          promptBoxContent.value += result.content
-
-          // Check prompt stream stop
-          if (result.stop) {
-            completionModeOff()
-
-            if (promptParams.interactive) {
-              promptBoxContent.value += promptParams.interjection_word
-            }
-
-            promptBoxArea.value.focus()
-            break
-          }
-      }
-      console.info("🏁 Completion finished.")
     }
 
     const generateSessionId = () => {
@@ -362,17 +349,16 @@ export default {
     };
 
     onMounted(() => {
-        // This is a temporal session id
-        generateSessionId()
-        console.info("Session ID:", sessionId.value)
-        setInterval(ImHere, 5000)
-      });
+      // This is a temporal session id
+      generateSessionId()
+      console.info("Session ID:", sessionId.value)
+      setInterval(ImHere, 5000)
+    });
 
     function ImHere() {
       try {
-        const response = fetch(`/api/imhere/${sessionId.value}`, {method:'GET'})
-      }catch (err) {
-
+        const response = fetch(`/api/imhere/${sessionId.value}`, { method: 'GET' })
+      } catch (err) {
       }
     }
 

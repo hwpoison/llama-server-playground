@@ -9,11 +9,11 @@ class InstanceManager:
         self.config = config
         self.base_port = 8084
         self.running_instances = {}
-
     def run_server(self, model_path: str, port: int):
-        server_executable = 'server.exe'
+        server_executable = self.config['server_exec']
         args = ['--port', str(port), '--model', model_path,
                 '--ctx-size', str(self.config['max_ctx'])]
+                
         process = subprocess.Popen(
             [server_executable] + args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         log.info(

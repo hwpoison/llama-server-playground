@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from instance_manager import InstanceManager
 from datetime import datetime
 import requests
@@ -9,12 +9,13 @@ from logger import log
 
 
 server_config = {
+    'server_exec': 'server.exe',
     'default_ip': 'http://127.0.0.1',
     'models': {
         'openllama3b': 'model/open-llama-3b-q4_0.bin',
     },
     'default_model': 'openllama3b',
-    'max_ctx': 1024
+    'max_ctx': 1024,
 }
 
 app = Flask(__name__)
@@ -59,19 +60,21 @@ def proxy(instance_id, endpoint):
         try:
             response = requests.get(url)
             res_data = json.loads(response.content)
-            process['current_prompt'] += res_data['content']
             return response.content, response.status_code
         except:
             return jsonify({"error": "problem"}), 500
 
     if request.method == 'POST':
         req_data = json.loads(request.data)
-        if not req_data['prompt'].startswith(process['current_prompt']):
-            instances.recreate(instance_id)
+        response = requests.post(
+            url, data=request.data, headers=headers, stream=True)
 
-        response = requests.post(url, data=request.data, headers=headers)
+        # Stream resonse
+        def generate():
+            for chunk in response.iter_content(chunk_size=2048):
+                yield chunk
+
         if response.status_code != 200:
             instances.recreate(instance_id)
 
-        process['current_prompt'] = req_data['prompt']
-        return response.content, response.status_code
+        return Response(generate(), content_type=response.headers['content-type'])
