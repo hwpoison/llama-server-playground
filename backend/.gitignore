@@ -3,4 +3,3 @@
 *.txt
 .vscode
 model/*.bin
-*.bat

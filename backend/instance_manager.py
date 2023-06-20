@@ -9,15 +9,22 @@ class InstanceManager:
         self.config = config
         self.base_port = 8084
         self.running_instances = {}
-    def run_server(self, model_path: str, port: int):
-        server_executable = self.config['server_exec']
-        args = ['--port', str(port), '--model', model_path,
-                '--ctx-size', str(self.config['max_ctx'])]
-                
+
+    def run_server(self, model_name: str, port: int):
+        """Launch a new subprocess related to http server with args
+        that going to be listening from background"""
+        server_executable = self.config['server']['executable']
+        model_path = f"{self.config['model_folder']}/{model_name}"
+        server_args = self.config['server']['args']
+        args = [
+            '--port', str(port),
+            '--model', model_path,
+            '--ctx-size', str(server_args['max_ctx']),
+        ] + server_args['additionals'].split(' ')
         process = subprocess.Popen(
             [server_executable] + args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         log.info(
-            f"Instance of model '{model_path}' created on PORT({port}) with PID({process.pid}).")
+            f"Instance of model '{model_name}' created on PORT({port}) with PID({process.pid}).")
         return process
 
     def recreate(self, instance_id: str) -> bool:
@@ -34,7 +41,8 @@ class InstanceManager:
         return False
 
     def kill(self, instance_id: str):
-        log.info("Killing instance ", instance_id)
+        """Kill a specific instance process"""
+        print("Killing instance ", instance_id)
         if self.running_instances.get(instance_id):
             instance = self.running_instances[instance_id]
             instance['process'].kill()
@@ -47,10 +55,13 @@ class InstanceManager:
         return False
 
     def kill_all(self):
+        """Kill alll present instances"""
         for instance_id in self.running_instances.keys():
             self.kill(instance_id)
 
     def create(self, instance_id: str, model_name: str):
+        """Launch an instance of serve.cpp and register it
+        for tracking"""
         choiced_model = self.config['models'][model_name]
         self.base_port += 1
         process = self.run_server(choiced_model, self.base_port)
@@ -78,7 +89,8 @@ class InstanceManager:
         return active_processes
 
     def auto_purge(self):
-        # Check every 10 secs and purge un used instances
+        """Check every 10 secs every instances and purge
+        those that are not more used"""
         now = datetime.now().timestamp()
         for instance_id in list(self.running_instances):
             instance = self.running_instances[instance_id]

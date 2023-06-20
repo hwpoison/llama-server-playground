@@ -7,7 +7,7 @@ export default defineConfig({
     // Proxy Setup for avoid CORS conflict due to llama.cpp serve
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:5000/",
+        target: "http://127.0.0.1:8080/",
         changeOrigin: true,
         cors:false,
         secure: false,

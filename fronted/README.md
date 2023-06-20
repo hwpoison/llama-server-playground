@@ -1,8 +1,9 @@
 # llama.cpp server Playground🦙
 
 A very simple playground inpired on Open-AI playground for llama.cpp http server usage.
+If you want to handle multiple instances subprocess you can use the backend, but it is not necessary for and stanlone server.cpp execution.
 
-server.cpp: https://github.com/ggerganov/llama.cpp/tree/master/examples/server
+More information about server.cpp: https://github.com/ggerganov/llama.cpp/tree/master/examples/server
 
 ### Screenshot
  ![Image](https://i.ibb.co/QXB89gK/screenshot.png)

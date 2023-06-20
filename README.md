@@ -1,6 +1,9 @@
 # llama.cpp Playground 🦙
 
-A Playground based on server.cpp from llama.cpp for use the llama models. Has a WebUI and you can play with prompts in a easy way.
+A Playground based on server.cpp from llama.cpp for use the llama models. Has a WebUI and you can play with prompts connecting with a server.cpp execution.
+Also you can use a backend if you want to handle multiple instances of server.cpp (only experimental due to the nature of the project).
+
+More information about server.cpp: https://github.com/ggerganov/llama.cpp/tree/master/examples/server
 
 ### Screenshot
  ![Image](https://i.ibb.co/QXB89gK/screenshot.png)
@@ -8,8 +11,8 @@ A Playground based on server.cpp from llama.cpp for use the llama models. Has a 
 
 ### How to run
 ```
-- Install npm and pip dependences following the readmes  
-- Put your model into backend/model folder and setup it into server_config into main.py
-- Run the fronted and backend
+- Install npm and pip dependences following the readmes
+- Execute the llama server standalone or if you want from the backend.
+- Run the fronted following the instructions in his README.
 - Go to http://localhost:3762/
 ```

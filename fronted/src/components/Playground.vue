@@ -1,6 +1,6 @@
 <template>
   <div class="inset-0 lg:h-[91vh] h-[81vh] cursor-default" @keyup.ctrl.enter="doCompletion()"
-    @keyup.alt.c="stopCompletion()" @keyup.alt.l="clearAll()">
+    @keyup.alt.c="stopCompletion()" @keyup.alt.l="clearPromptBox()">
     <div class="flex h-full ">
       <div class="flex-grow w-full h-full pb-10 bg-gray-50 p-4">
         <h2 class="flex justify-start text-xl font-bold mb-4">LLaMA Playground<div
@@ -11,11 +11,13 @@
               <circle class="spinner_I8Q1" cx="20" cy="12" r="1.5" />
             </svg></div>
         </h2>
-
         <!-- Prompt Area -->
-        <textarea ref="promptBoxArea" v-model="promptBoxContent"
+        <!--<textarea ref="promptBoxArea" v-model="promptBoxContent"
           class="w-full h-full resize-none p-4 border-2 rounded-md duration-500 border-teal-500  focus:ring-teal-500 focus:border-teal-600 focus:outline-0"
-          placeholder="Write something..."></textarea>
+          placeholder="Write something..."></textarea>-->
+        <div ref="promptBoxArea" contenteditable="true" @input="updateValue($event)"
+          class="w-full h-full resize-none p-4 border-2 rounded-md duration-500 border-teal-500  focus:ring-teal-500 focus:border-teal-600 focus:outline-0">
+        </div>
       </div>
 
       <!-- Settings panel -->
@@ -28,7 +30,7 @@
             <h1 class="font-light pt-2">Prompt samples</h1>
             <select
               class="w-4/5   block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none w- focus:ring-indigo-500"
-              @change="promptSamples($event)">
+              @change="loadExamplePrompt($event)">
               <option v-for="value, key in samplePrompts" :value="value.value" :key="value.value">{{ key }}</option>
             </select>
             <h1 class="font-light pt-2">Stop word</h1>
@@ -154,8 +156,8 @@
 </template>
 
 <script>
-import { nextTick, ref, reactive, onMounted } from 'vue'
-import { samplePrompts } from "../utils/samplePrompts";
+import { nextTick, ref, reactive, onMounted, watchEffect } from 'vue'
+import { completionApiEndpoint, samplePrompts, promptParams } from "../utils/configs";
 import PopOver from "../components/PopOver.vue"
 
 export default {
@@ -164,88 +166,54 @@ export default {
     PopOver
   },
   setup(props) {
-
-    const defaultInterjectWord = "### Human:"
     const promptBoxContent = ref("")
     const promptBoxArea = ref()
     const completionInProgress = ref(false);
     const errorMessage = ref("")
-    const fetchingToken = ref(false)
     const completionHistory = ref([])
     const sessionId = ref(undefined)
 
-    // prompt parameters
-    const promptParams = reactive({
-      temperature: {
-        value: 0.8,
-        description: "Control the randomness or creativity."
-      },
-      top_k: {
-        value: 40,
-        description: "During each token, select the most probable from K tokens. (defaul: 40)."
-      },
-      top_p: {
-        value: 0.9,
-        description: "Limits the selection of the next token based on the most probable amount over P. (default:0.9)"
-      },
-      n_keep: {
-        value: 0,
-        description: ""
-      },
-      n_predict: {
-        value: 100,
-        description: "Numbers of tokens to predict when output is generated."
-      },
-      stop_words: {
-        value: defaultInterjectWord,
-        description: "The prompt completion will stop when this value/s are detected. Input split separated with ','"
-      },
-      injection_word: {
-        value: defaultInterjectWord,
-        description: "After each completion and if interaction mode is checked, this value will be added at the end of the prompt."
-      },
-      stream: {
-        value: true,
-        description: "Stream completion"
-      },
-      interactive: {
-        value: false,
-        description: "The completion stops when a stop word is detected."
-      },
-      seed: {
-        value: -1,
-        description: "Set the random number generator (RNG) seed (default: -1, < 0 = random seed)"
-      },
-      mirostat: {
-        value: 0,
-        options: [0, 1, 2],
-        description: "Enable Mirostat sampling, controlling perplexity during text generation (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0)."
-      }
+    // emulate v-model for prompt text area div editable
+    watchEffect(() => {
+      promptBoxContent.value = promptBoxArea.value;
+    });
+
+    onMounted(() => {
+      // This is a temporal session id
+      generateSessionId()
+      console.info("Session ID:", sessionId.value)
+      setInterval(ImHere, 5000)
+
     })
+
+    function updateValue(event) {
+      promptBoxContent.value = event.target;
+    }
 
     function undoCompletion() {
       if (completionHistory.value.length) {
         stopCompletion()
-        promptBoxContent.value = completionHistory.value.pop()
+        promptBoxContent.value.textContent = completionHistory.value.pop()
         console.info("⏪ Undo completion")
       }
     }
 
     function retryCompletion() {
-      console.log("🔁 Retry")
+      console.log("🔁 Retrying")
       stopCompletion()
       undoCompletion()
       doCompletion()
     }
 
     function completionModeOn() {
-      promptBoxArea.value.disabled = true
+      promptBoxArea.value.contentEditable = false
       completionInProgress.value = true
     }
 
     function completionModeOff() {
-      promptBoxArea.value.disabled = false
+      promptBoxArea.value.contentEditable = true
       completionInProgress.value = false
+      promptBoxArea.value.focus()
     }
 
     async function stopCompletion() {
@@ -259,26 +227,47 @@ export default {
     async function scrollTextAreaToBottom() {
       await nextTick()
       promptBoxArea.value.scrollTop = promptBoxArea.value.scrollHeight
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(promptBoxArea.value);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      promptBoxArea.value.focus();
     }
 
-    function clearAll() {
+    function clearPromptBox() {
       completionHistory.value = []
-      promptBoxContent.value = ""
+      promptBoxContent.value.textContent = ""
     }
 
-    function splitSequence(input) {
-      const words = input.length > 0 ? input.split(',') : []
-      return words
+    // Add token/text to promptBoxArea using fadeIn effect by each one.
+    function putToken(token) {
+      var tokens = token.split("");
+      tokens.forEach(function (char) {
+        var newToken = document.createElement("span");
+        if (char === "\n") { // check break line
+          var br = document.createElement("br");
+          promptBoxContent.value.appendChild(br);
+          return;
+        }
+        newToken.textContent = char;
+        newToken.classList.add("transition-token-opacity");
+        newToken.style.opacity = "0";
+        promptBoxContent.value.appendChild(newToken);
+        window.getComputedStyle(newToken).opacity;
+        newToken.style.opacity = "1";
+      });
     }
 
-    function promptSamples(event) {
-      clearAll()
-      promptBoxContent.value = samplePrompts[event.target.value]
+    function loadExamplePrompt(event) {
+      clearPromptBox()
+      putToken(samplePrompts[event.target.value])
     }
 
     function buildCompletionRequest() {
-      const completionRequestBody = {
-        prompt: promptBoxContent.value,
+      return {
+        prompt: promptBoxContent.value.textContent,
         temperature: promptParams.temperature.value,
         top_k: promptParams.top_k.value,
         top_p: promptParams.top_p.value,
@@ -288,50 +277,52 @@ export default {
         stream: promptParams.stream.value,
         stop: [promptParams.stop_words.value],
         seed: promptParams.seed.value,
-        mirostat: promptParams.mirostat.value
+        mirostat: promptParams.mirostat.value,
+        sessionID: sessionId.value
       }
-      return completionRequestBody;
     }
 
     async function doCompletion() {
-      completionHistory.value.push(promptBoxContent.value)
+      completionHistory.value.push(promptBoxContent.value.textContent)
       errorMessage.value = ''
       const requestBody = buildCompletionRequest()
       try {
         stopCompletion()
         completionModeOn()
         console.info("📨 Submiting params:", requestBody)
-        const result = await sendRequest(`/api/${sessionId.value}/completion`, 'POST', requestBody).then(response => {
+        const result = await sendRequest(completionApiEndpoint, 'POST', requestBody)
+        try {
           console.info("↺ Prompt submited, now fetching completion...")
-          const reader = response.body.getReader();
+          const reader = result.body.getReader();
           const processStream = ({ done, value }) => {
             if (done) {
-              if (promptParams.interactive.value) {
-                promptBoxContent.value += promptParams.injection_word.value
-              }
+              if (promptParams.interactive.value)
+                promptBoxContent.value.textContent += promptParams.injection_word.value
               console.info("🏁 Completion finished.")
+              completionModeOff()
               return
             }
             if (!completionInProgress.value) return
             const data = new TextDecoder('utf-8').decode(value);
-            const token = JSON.parse(data.substring(6))
-            promptBoxContent.value += token.content
+            const token = JSON.parse(data.replace("data: ", ""))
+            if (token.error) {
+              console.error(token.error)
+              errorMessage.value = "Error, please try again."
+            }
+            putToken(token.content)
             scrollTextAreaToBottom()
             return reader.read().then(processStream)
           };
           return reader.read().then(processStream)
-        })
-          .catch(error => {
-            console.error("❌ Error while stream the completion:", error)
-            completionModeOff()
-          });
+        } catch (error) {
+          console.error("❌ Error while stream the completion:", error)
+          errorMessage.value = "Error while stream completion, try again..."
+        }
       } catch (error) {
         console.error("❌ Error requesting completion:", error)
         errorMessage.value = "Connection error"
       }
       completionModeOff()
-      promptBoxArea.value.focus()
-      return false
     }
 
     async function sendRequest(url, method, body) {
@@ -346,20 +337,12 @@ export default {
 
     const generateSessionId = () => {
       sessionId.value = Math.random().toString(36).substring(2) + Date.now().toString(36);
-    };
-
-    onMounted(() => {
-      // This is a temporal session id
-      generateSessionId()
-      console.info("Session ID:", sessionId.value)
-      setInterval(ImHere, 5000)
-    });
+    }
 
     function ImHere() {
       try {
         const response = fetch(`/api/imhere/${sessionId.value}`, { method: 'GET' })
-      } catch (err) {
-      }
+      } catch (err) { }
     }
 
     return {
@@ -368,10 +351,11 @@ export default {
       promptBoxArea,
       completionInProgress,
       samplePrompts,
-      promptSamples,
+      loadExamplePrompt,
       stopCompletion,
+      updateValue,
       undoCompletion,
-      clearAll,
+      clearPromptBox,
       errorMessage,
       retryCompletion,
       promptParams
@@ -380,6 +364,7 @@ export default {
 }
 </script>
 <style>
+/* Loading spinner */
 .spinner_I8Q1 {
   animation: spinner_qhi1 .75s linear infinite
 }
@@ -398,5 +383,11 @@ export default {
   50% {
     r: 3px
   }
+}
+
+/* Token transition opacity */
+.transition-token-opacity {
+  opacity: 1;
+  transition: opacity 0.3s ease;
 }
 </style>
