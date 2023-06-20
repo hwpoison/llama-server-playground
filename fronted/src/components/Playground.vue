@@ -12,9 +12,6 @@
             </svg></div>
         </h2>
         <!-- Prompt Area -->
-        <!--<textarea ref="promptBoxArea" v-model="promptBoxContent"
-          class="w-full h-full resize-none p-4 border-2 rounded-md duration-500 border-teal-500  focus:ring-teal-500 focus:border-teal-600 focus:outline-0"
-          placeholder="Write something..."></textarea>-->
         <div ref="promptBoxArea" contenteditable="true" @input="updateValue($event)"
           class="w-full h-full resize-none p-4 border-2 rounded-md duration-500 border-teal-500  focus:ring-teal-500 focus:border-teal-600 focus:outline-0">
         </div>
@@ -166,6 +163,7 @@ export default {
     PopOver
   },
   setup(props) {
+    const backendMode = ref(false)
     const promptBoxContent = ref("")
     const promptBoxArea = ref()
     const completionInProgress = ref(false);
@@ -183,7 +181,6 @@ export default {
       generateSessionId()
       console.info("Session ID:", sessionId.value)
       setInterval(ImHere, 5000)
-
     })
 
     function updateValue(event) {
@@ -193,7 +190,7 @@ export default {
     function undoCompletion() {
       if (completionHistory.value.length) {
         stopCompletion()
-        promptBoxContent.value.textContent = completionHistory.value.pop()
+        writePromptBox(completionHistory.value.pop())
         console.info("⏪ Undo completion")
       }
     }
@@ -222,6 +219,7 @@ export default {
         return false
       }
       completionModeOff()
+      console.info("[-] Completion stopped by user.")
     }
 
     async function scrollTextAreaToBottom() {
@@ -242,8 +240,8 @@ export default {
     }
 
     // Add token/text to promptBoxArea using fadeIn effect by each one.
-    function putToken(token) {
-      var tokens = token.split("");
+    function writePromptBox(text) {
+      var tokens = text.split("");
       tokens.forEach(function (char) {
         var newToken = document.createElement("span");
         if (char === "\n") { // check break line
@@ -262,7 +260,7 @@ export default {
 
     function loadExamplePrompt(event) {
       clearPromptBox()
-      putToken(samplePrompts[event.target.value])
+      writePromptBox(samplePrompts[event.target.value])
     }
 
     function buildCompletionRequest() {
@@ -291,6 +289,8 @@ export default {
         completionModeOn()
         console.info("📨 Submiting params:", requestBody)
         const result = await sendRequest(completionApiEndpoint, 'POST', requestBody)
+        if (!result.ok)
+          errorMessage.value = "Error, try again."
         try {
           console.info("↺ Prompt submited, now fetching completion...")
           const reader = result.body.getReader();
@@ -309,7 +309,7 @@ export default {
               console.error(token.error)
               errorMessage.value = "Error, please try again."
             }
-            putToken(token.content)
+            writePromptBox(token.content)
             scrollTextAreaToBottom()
             return reader.read().then(processStream)
           };
@@ -339,9 +339,14 @@ export default {
       sessionId.value = Math.random().toString(36).substring(2) + Date.now().toString(36);
     }
 
-    function ImHere() {
+    async function ImHere() {
+      if(backendMode.value) return
       try {
-        const response = fetch(`/api/imhere/${sessionId.value}`, { method: 'GET' })
+        const response = await fetch(`/api/imhere/${sessionId.value}`, { method: 'GET' })
+        if(response.status == 404){
+          backendMode.value = true
+          console.log("[-] No reverse proxy backend running detected, omitting ping.")
+        }
       } catch (err) { }
     }
 

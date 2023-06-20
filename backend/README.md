@@ -1,6 +1,6 @@
 # llama.cpp playground Backend🦙
 
-A backend for handle paralell server.cpp instances executions for playground UI. Is experimental and only for personal use purposes given the nature of the project. It is not explicit necessary because the fronted works too with standalone server execution.
+A inverse proxy for handle paralell server.cpp instances executions for playground UI. Is experimental and only for personal use purposes given the nature of the project. It is not explicit necessary because the fronted works too with standalone server execution.
 
 More information about server.cpp: https://github.com/ggerganov/llama.cpp/tree/master/examples/server
 
