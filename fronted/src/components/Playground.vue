@@ -1,6 +1,6 @@
 <template>
   <div class="inset-0 lg:h-[91vh] h-[81vh] cursor-default" @keyup.ctrl.enter="doCompletion()"
-    @keyup.alt.c="stopCompletion()" @keyup.alt.l="clearPromptBox()">
+    @keyup.alt.c="stopCompletion()" @keyup.alt.l="emptyPromptBox()">
     <div class="flex h-full ">
       <div class="flex-grow w-full h-full pb-10 bg-gray-50 p-4">
         <h2 class="flex justify-start text-xl font-bold mb-4">LLaMA Playground<div
@@ -147,13 +147,13 @@
       <p class="pl-4 align-middle text-red-600" :class="{ 'visible': errorMessage }"> {{ errorMessage }} </p>
     </div>
     <p class="absolute mt-4 right-10 hidden md:block "><a
-        href="https://github.com/ggerganov/llama.cpp/tree/master/examples/server"
-        target="_blank">https://github.com/ggerganov/llama.cpp</a></p>
+        href="https://github.com/ggerganov/llama.cpp/tree/master/examples/server" target="_blank">More info:
+        https://github.com/ggerganov/llama.cpp</a></p>
   </div>
 </template>
 
 <script>
-import { nextTick, ref, reactive, onMounted, watchEffect } from 'vue'
+import { nextTick, ref, reactive, onMounted } from 'vue'
 import { completionApiEndpoint, samplePrompts, promptParams } from "../utils/configs";
 import PopOver from "../components/PopOver.vue"
 
@@ -171,26 +171,35 @@ export default {
     const completionHistory = ref([])
     const sessionId = ref(undefined)
 
-    // emulate v-model for prompt text area div editable
-    watchEffect(() => {
-      promptBoxContent.value = promptBoxArea.value;
-    });
+
+    function simulateCompletion() {
+      completionHistory.value.push(promptBoxArea.value.innerText.slice())
+      writePromptBox("Hello\n")
+      completionHistory.value.push(promptBoxArea.value.innerText.slice())
+      writePromptBox("This\n")
+      console.log(promptBoxArea.value.textContent)
+      completionHistory.value.push(promptBoxArea.value.innerText.slice())
+      writePromptBox("is all!")
+    }
 
     onMounted(() => {
-      // This is a temporal session id
-      generateSessionId()
+      generateSessionId() // session id for register instance in proxy
       console.info("Session ID:", sessionId.value)
       setInterval(ImHere, 5000)
     })
 
     function updateValue(event) {
-      promptBoxContent.value = event.target;
+      promptBoxArea.value = event.target;
+    }
+
+    function emptyPromptBox() {
+      promptBoxArea.value.innerText = ""
     }
 
     function undoCompletion() {
       if (completionHistory.value.length) {
         stopCompletion()
-        writePromptBox(completionHistory.value.pop())
+        promptBoxArea.value.innerText = completionHistory.value.pop()
         console.info("⏪ Undo completion")
       }
     }
@@ -210,16 +219,16 @@ export default {
     function completionModeOff() {
       promptBoxArea.value.contentEditable = true
       completionInProgress.value = false
-      promptBoxArea.value.focus()
+      scrollTextAreaToBottom()
     }
 
     async function stopCompletion() {
       if (!completionInProgress.value) {
-        console.info("[?] No completion in progress.")
         return false
       }
       completionModeOff()
       console.info("[-] Completion stopped by user.")
+      return true
     }
 
     async function scrollTextAreaToBottom() {
@@ -234,54 +243,50 @@ export default {
       promptBoxArea.value.focus();
     }
 
-    function clearPromptBox() {
-      completionHistory.value = []
-      promptBoxContent.value.textContent = ""
-    }
-
     // Add token/text to promptBoxArea using fadeIn effect by each one.
     function writePromptBox(text) {
       var tokens = text.split("");
       tokens.forEach(function (char) {
         var newToken = document.createElement("span");
         if (char === "\n") { // check break line
-          var br = document.createElement("br");
-          promptBoxContent.value.appendChild(br);
+          promptBoxArea.value.innerText += "\n"
           return;
         }
         newToken.textContent = char;
         newToken.classList.add("transition-token-opacity");
         newToken.style.opacity = "0";
-        promptBoxContent.value.appendChild(newToken);
+        promptBoxArea.value.appendChild(newToken);
         window.getComputedStyle(newToken).opacity;
         newToken.style.opacity = "1";
       });
     }
 
     function loadExamplePrompt(event) {
-      clearPromptBox()
+      emptyPromptBox()
       writePromptBox(samplePrompts[event.target.value])
     }
 
     function buildCompletionRequest() {
-      return {
-        prompt: promptBoxContent.value.textContent,
+      const requestBody = {
+        prompt: promptBoxArea.value.innerText,
         temperature: promptParams.temperature.value,
         top_k: promptParams.top_k.value,
         top_p: promptParams.top_p.value,
-        stop: promptParams.stop_words.value,
         n_keep: promptParams.n_keep.value,
         n_predict: promptParams.n_predict.value,
         stream: promptParams.stream.value,
-        stop: [promptParams.stop_words.value],
         seed: promptParams.seed.value,
         mirostat: promptParams.mirostat.value,
         sessionID: sessionId.value
       }
+      if (promptParams.interactive.value) {
+        requestBody.stop = [promptParams.stop_words.value]
+      }
+      return requestBody
     }
 
     async function doCompletion() {
-      completionHistory.value.push(promptBoxContent.value.textContent)
+      completionHistory.value.push(promptBoxArea.value.innerText.slice())
       errorMessage.value = ''
       const requestBody = buildCompletionRequest()
       try {
@@ -297,7 +302,7 @@ export default {
           const processStream = ({ done, value }) => {
             if (done) {
               if (promptParams.interactive.value)
-                promptBoxContent.value.textContent += promptParams.injection_word.value
+                writePromptBox(promptParams.injection_word.value)
               console.info("🏁 Completion finished.")
               completionModeOff()
               return
@@ -340,10 +345,10 @@ export default {
     }
 
     async function ImHere() {
-      if(backendMode.value) return
+      if (backendMode.value) return
       try {
         const response = await fetch(`/api/imhere/${sessionId.value}`, { method: 'GET' })
-        if(response.status == 404){
+        if (response.status == 404) {
           backendMode.value = true
           console.log("[-] No reverse proxy backend running detected, omitting ping.")
         }
@@ -360,7 +365,7 @@ export default {
       stopCompletion,
       updateValue,
       undoCompletion,
-      clearPromptBox,
+      emptyPromptBox,
       errorMessage,
       retryCompletion,
       promptParams
