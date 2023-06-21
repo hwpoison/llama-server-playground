@@ -16,7 +16,7 @@ const completionApiEndpoint = '/api/completion'
 const promptParams = reactive({
   temperature: {
     value: 0.8,
-    description: "Control the randomness or creativity."
+    description: "Control the randomness or creativity. More temperature, more creativity, less temperature, more coherent and exact about the previous context."
   },
   top_k: {
     value: 40,
@@ -57,7 +57,7 @@ const promptParams = reactive({
   mirostat: {
     value: 0,
     options: [0, 1, 2],
-    description: "Enable Mirostat sampling, controlling perplexity during text generation (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0)."
+    description: "Enable Mirostat sampling, controlling perplexity during text generation, less perplexity generates a text more preditable and coherent (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0)."
   }
 })
 

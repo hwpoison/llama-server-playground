@@ -1,10 +1,13 @@
 <template>
-  <div class="inset-0 lg:h-[91vh] h-[81vh] cursor-default" @keyup.ctrl.enter="doCompletion()"
-    @keyup.alt.c="stopCompletion()" @keyup.alt.l="emptyPromptBox()">
+  <div class="inset-0 lg:h-[91vh] h-[81vh] cursor-default" 
+    @keyup.alt.l="emptyPromptBox" 
+    @keyup.alt.r="retryCompletion"
+    @keyup.prevent.ctrl.z="undoCompletion"
+  >
     <div class="flex h-full ">
       <div class="flex-grow w-full h-full pb-10 bg-gray-50 p-4">
         <h2 class="flex justify-start text-xl font-bold mb-4">LLaMA Playground<div
-            :class="{ 'hidden': !completionInProgress }"><svg fill="rgb(20 184 166)" width="24" height="24"
+            :class="{ 'hidden': !isCompletionInProgress }"><svg fill="rgb(20 184 166)" width="24" height="24"
               viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <circle class="spinner_I8Q1" cx="4" cy="12" r="1.5" />
               <circle class="spinner_I8Q1 spinner_vrS7" cx="12" cy="12" r="3" />
@@ -12,8 +15,8 @@
             </svg></div>
         </h2>
         <!-- Prompt Area -->
-        <div ref="promptBoxArea" contenteditable="true" @input="updateValue($event)"
-          class="w-full h-full resize-none p-4 border-2 rounded-md duration-500 border-teal-500  focus:ring-teal-500 focus:border-teal-600 focus:outline-0">
+        <div ref="promptBoxArea" contenteditable="true" @input="updateValue($event)" @paste="handlePaste"
+          class="w-full h-full overflow-y-scroll resize-none p-3 border-2 rounded-md duration-500 border-teal-500 focus:ring-teal-500 focus:border-teal-600 focus:outline-0">
         </div>
       </div>
 
@@ -26,25 +29,27 @@
             <!-- Preset select -->
             <h1 class="font-light pt-2">Prompt samples</h1>
             <select
-              class="w-4/5   block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none w- focus:ring-indigo-500"
+              class="w-4/5 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none w- focus:ring-indigo-500"
               @change="loadExamplePrompt($event)">
               <option v-for="value, key in samplePrompts" :value="value.value" :key="value.value">{{ key }}</option>
             </select>
             <h1 class="font-light pt-2">Stop word</h1>
             <PopOver target="p_stop_sequence" title="Stop Sequences" :message="promptParams.stop_words.description">
             </PopOver>
-            <input data-popover-target="p_stop_sequence" v-model="promptParams.stop_words.value" type="text"
+            <input data-popover-target="p_stop_sequence" data-popover-placement="left"
+              v-model="promptParams.stop_words.value" type="text"
               class="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm w-4/5 focus:outline-none focus:ring-indigo-500">
 
             <h1 class="font-light pt-2">Injert at end</h1>
             <PopOver target="p_injert_end" title="Injert at the end" :message="promptParams.injection_word.description">
             </PopOver>
-            <input data-popover-target="p_injert_end" v-model="promptParams.injection_word.value" type="text"
+            <input data-popover-target="p_injert_end" data-popover-placement="left"
+              v-model="promptParams.injection_word.value" type="text"
               class="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm w-4/5 focus:outline-none focus:ring-indigo-500">
 
             <PopOver target="interactive_mode" title="Interactive mode" :message="promptParams.interactive.description">
             </PopOver>
-            <div data-popover-target="interactive_mode" class="flex items-center pt-3 ">
+            <div data-popover-target="interactive_mode" data-popover-placement="left" class="flex items-center pt-3 ">
               <input type="checkbox" v-model="promptParams.interactive.value" id="checkbox"
                 class="form-checkbox  text-indigo-500 h-4 w-4">
               <label for="checkbox" class="align-middle ml-2">Interactive mode</label>
@@ -53,37 +58,37 @@
         </div>
 
         <div class="py-3">
-          <div class="bg-indigo-50  rounded-lg p-3">
+          <div class="bg-indigo-50 rounded-lg p-3">
             <!-- temperature -->
             <h1 class="font-light pt-2">Temperature</h1>
             <PopOver target="n_p_temperature" title="Temperature" :message="promptParams.temperature.description">
             </PopOver>
-            <input data-popover-target="n_p_temperature" v-model="promptParams.temperature.value" type="number" step="0.1"
-              min="0" max="1"
+            <input data-popover-target="n_p_temperature" data-popover-placement="left"
+              v-model="promptParams.temperature.value" type="number" step="0.1" min="0" max="1"
               class="appearance-none block w-full py-2 px-3  w-4/5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
 
             <!-- n_predict  -->
             <h1 class="font-light pt-2">n_predict</h1>
             <PopOver target="n_p_tooltip" title="Numbers of tokens" :message="promptParams.n_predict.description">
             </PopOver>
-            <input data-popover-target="n_p_tooltip" v-model="promptParams.n_predict.value" type="number" step="1" min="0"
-              max="2048"
+            <input data-popover-target="n_p_tooltip" data-popover-placement="left" v-model="promptParams.n_predict.value"
+              type="number" step="1" min="0" max="2048"
               class="appearance-none block w-full py-2 px-3 w-4/5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
 
 
             <!-- top_k  -->
             <h1 class="font-light pt-2">top_k</h1>
             <PopOver target="n_top_k" title="Top K" :message="promptParams.top_k.description"></PopOver>
-            <input data-popover-target="n_top_k" v-model="promptParams.top_k.value" type="number" step="1" min="0"
-              max="2048"
+            <input data-popover-target="n_top_k" data-popover-placement="left" v-model="promptParams.top_k.value"
+              type="number" step="1" min="0" max="2048"
               class="appearance-none block w-full py-2 px-3 border w-4/5 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
 
             <!-- top_p  -->
             <h1 class="font-light pt-2">top_p</h1>
             <PopOver target="n_p_top_p" title="Top P" :message="promptParams.top_p.description">
             </PopOver>
-            <input data-popover-target="n_p_top_p" v-model="promptParams.top_p.value" type="number" step="1" min="0"
-              max="2048"
+            <input data-popover-target="n_p_top_p" data-popover-placement="left" v-model="promptParams.top_p.value"
+              type="number" step="1" min="0" max="2048"
               class="appearance-none block w-full py-2 px-3 border w-4/5 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 max-w-xs">
 
             <!-- n_keep  -->
@@ -95,7 +100,7 @@
             <h1 class="font-light pt-2">Mirostat</h1>
             <PopOver target="n_p_mirostate" title="Mirostate" :message="promptParams.mirostat.description">
             </PopOver>
-            <select data-popover-target="n_p_mirostate"
+            <select data-popover-target="n_p_mirostate" data-popover-placement="left"
               class="w-4/5 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none w- focus:ring-indigo-500"
               @change="promptParams.mirostat.value = parseInt($event.target.value)">
               <option v-for="value, key in promptParams.mirostat.options" :value="value.value" :key="value.value">{{ key
@@ -112,9 +117,8 @@
     <div class="flex p-2 pt-4 pl-4">
 
       <!-- Undo button -->
-      <button
-        class="bg-teal-500 hover:bg-teal-700 duration-300 text-white mr-2 font-light px-2 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        :class="{ 'opacity-50': completionInProgress }" @click="undoCompletion()">
+      <button class="ui-control-button-default" :class="{ 'opacity-50': isCompletionInProgress }"
+        @click="undoCompletion()">
         <div class="w-5 h-5 ">
           <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true">
@@ -124,9 +128,8 @@
       </button>
 
       <!-- Retry button -->
-      <button
-        class="bg-teal-500 hover:bg-teal-700 duration-300 text-white mr-2 font-light px-2 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        :class="{ 'opacity-50': completionInProgress }" @click="retryCompletion()">
+      <button class="ui-control-button-default" :class="{ 'opacity-50': isCompletionInProgress }"
+        @click="retryCompletion()">
         <div class="w-5 h-5 ">
           <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true">
@@ -138,10 +141,9 @@
       </button>
 
       <!-- Submit button -->
-      <button
-        class="bg-teal-500 hover:bg-teal-700 duration-300 text-white font-light py-1 px-4 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        :class="{ 'opacity-50': completionInProgress }" @click="completionInProgress ? stopCompletion() : doCompletion()">
-        {{ completionInProgress ? "Cancel" : "Submit" }}
+      <button class="ui-control-button-default" :class="{ 'bg-teal-700': isCompletionInProgress }"
+        @click="isCompletionInProgress ? stopCompletion() : doCompletion()">
+        {{ isCompletionInProgress ? "Cancel" : "Submit" }}
       </button>
 
       <p class="pl-4 align-middle text-red-600" :class="{ 'visible': errorMessage }"> {{ errorMessage }} </p>
@@ -163,14 +165,14 @@ export default {
     PopOver
   },
   setup(props) {
-    const backendMode = ref(false)
-    const promptBoxContent = ref("")
-    const promptBoxArea = ref()
-    const completionInProgress = ref(false);
-    const errorMessage = ref("")
-    const completionHistory = ref([])
+    const pingMode = ref(false) // for proxy
     const sessionId = ref(undefined)
 
+    const promptBoxContent = ref("")
+    const promptBoxArea = ref()
+    const isCompletionInProgress = ref(false);
+    const errorMessage = ref("")
+    const completionHistory = ref([])
 
     function simulateCompletion() {
       completionHistory.value.push(promptBoxArea.value.innerText.slice())
@@ -185,6 +187,7 @@ export default {
     onMounted(() => {
       generateSessionId() // session id for register instance in proxy
       console.info("Session ID:", sessionId.value)
+      document.addEventListener('keyup', triggerCompletion);
       setInterval(ImHere, 5000)
     })
 
@@ -200,6 +203,7 @@ export default {
       if (completionHistory.value.length) {
         stopCompletion()
         promptBoxArea.value.innerText = completionHistory.value.pop()
+        completionModeOff()
         console.info("⏪ Undo completion")
       }
     }
@@ -213,17 +217,17 @@ export default {
 
     function completionModeOn() {
       promptBoxArea.value.contentEditable = false
-      completionInProgress.value = true
+      isCompletionInProgress.value = true
     }
 
     function completionModeOff() {
       promptBoxArea.value.contentEditable = true
-      completionInProgress.value = false
+      isCompletionInProgress.value = false
       scrollTextAreaToBottom()
     }
 
     async function stopCompletion() {
-      if (!completionInProgress.value) {
+      if (!isCompletionInProgress.value) {
         return false
       }
       completionModeOff()
@@ -243,22 +247,22 @@ export default {
       promptBoxArea.value.focus();
     }
 
-    // Add token/text to promptBoxArea using fadeIn effect by each one.
+    // Add token/text to promptBoxArea using smooth fade in 
     function writePromptBox(text) {
-      var tokens = text.split("");
-      tokens.forEach(function (char) {
-        var newToken = document.createElement("span");
-        if (char === "\n") { // check break line
-          promptBoxArea.value.innerText += "\n"
-          return;
+      const lines = text.split(/(\n)/)
+      lines.forEach((line) => {
+        if (line == '\n') {
+          promptBoxArea.value.innerText += '\n';
+        } else {
+          let newToken = document.createElement("span");
+          newToken.textContent = line;
+          newToken.classList.add("transition-token-opacity");
+          newToken.style.opacity = "0";
+          promptBoxArea.value.appendChild(newToken);
+          window.getComputedStyle(newToken).opacity; // force re-draw
+          newToken.style.opacity = "1";
         }
-        newToken.textContent = char;
-        newToken.classList.add("transition-token-opacity");
-        newToken.style.opacity = "0";
-        promptBoxArea.value.appendChild(newToken);
-        window.getComputedStyle(newToken).opacity;
-        newToken.style.opacity = "1";
-      });
+      })
     }
 
     function loadExamplePrompt(event) {
@@ -285,48 +289,66 @@ export default {
       return requestBody
     }
 
+    // Press ctrl+enter for start or stop the completion
+    function triggerCompletion(event) {
+      if (event.ctrlKey && event.key === 'Enter') {
+        isCompletionInProgress.value ? stopCompletion() : doCompletion()
+      }
+    }
+
     async function doCompletion() {
       completionHistory.value.push(promptBoxArea.value.innerText.slice())
       errorMessage.value = ''
       const requestBody = buildCompletionRequest()
-      try {
-        stopCompletion()
-        completionModeOn()
-        console.info("📨 Submiting params:", requestBody)
-        const result = await sendRequest(completionApiEndpoint, 'POST', requestBody)
-        if (!result.ok)
-          errorMessage.value = "Error, try again."
-        try {
-          console.info("↺ Prompt submited, now fetching completion...")
-          const reader = result.body.getReader();
-          const processStream = ({ done, value }) => {
-            if (done) {
-              if (promptParams.interactive.value)
-                writePromptBox(promptParams.injection_word.value)
-              console.info("🏁 Completion finished.")
-              completionModeOff()
-              return
-            }
-            if (!completionInProgress.value) return
-            const data = new TextDecoder('utf-8').decode(value);
-            const token = JSON.parse(data.replace("data: ", ""))
-            if (token.error) {
-              console.error(token.error)
-              errorMessage.value = "Error, please try again."
-            }
-            writePromptBox(token.content)
-            scrollTextAreaToBottom()
-            return reader.read().then(processStream)
-          };
-          return reader.read().then(processStream)
-        } catch (error) {
-          console.error("❌ Error while stream the completion:", error)
-          errorMessage.value = "Error while stream completion, try again..."
-        }
-      } catch (error) {
-        console.error("❌ Error requesting completion:", error)
-        errorMessage.value = "Connection error"
+
+      stopCompletion()
+      completionModeOn()
+      console.info("📨 Submiting params:", requestBody)
+      const result = await sendRequest(completionApiEndpoint, 'POST', requestBody)
+      if (!result.ok) {
+        errorMessage.value = "Error submiting the prompt, try again."
+        return completionModeOff()
       }
+      try {
+        console.info("↺ Prompt submited, now fetching completion...")
+        const reader = result.body.getReader();
+        const processStream = ({ done, value }) => {
+          if (done) {
+            if (promptParams.interactive.value)
+              writePromptBox(promptParams.injection_word.value)
+            console.info("🏁 Completion finished.")
+            return completionModeOff()
+          }
+          if (!isCompletionInProgress.value) return
+          const data = new TextDecoder('utf-8').decode(value);
+          let token;
+          try {
+            token = JSON.parse(data.replace("data: ", ""));
+          } catch (error) {
+            console.error("❌ Error parsing token:", error, data);
+            errorMessage.value = "Error parsing token, please try again.";
+            return completionModeOff()
+          }
+          if (token.error) {
+            console.error(token.error)
+            errorMessage.value = "Error, please try again."
+          }
+          writePromptBox(token.content)
+          scrollTextAreaToBottom()
+          return reader.read().then(processStream)
+        };
+        return reader.read().then(processStream)
+      } catch (error) {
+        console.error("❌ Error while stream the completion:", error)
+        errorMessage.value = "Error while stream completion, try again..."
+      }
+      completionModeOff()
+    }
+    
+    function handlePaste(event) {
+      event.preventDefault(); // Evita la acción de pegar predeterminada
+      const plainText = event.clipboardData.getData('text/plain'); // Obtiene el texto sin formato del portapapeles
+      promptBoxArea.value.innerText += plainText
       completionModeOff()
     }
 
@@ -345,11 +367,11 @@ export default {
     }
 
     async function ImHere() {
-      if (backendMode.value) return
+      if (pingMode.value) return
       try {
         const response = await fetch(`/api/imhere/${sessionId.value}`, { method: 'GET' })
         if (response.status == 404) {
-          backendMode.value = true
+          pingMode.value = true
           console.log("[-] No reverse proxy backend running detected, omitting ping.")
         }
       } catch (err) { }
@@ -359,7 +381,7 @@ export default {
       doCompletion,
       promptBoxContent,
       promptBoxArea,
-      completionInProgress,
+      isCompletionInProgress,
       samplePrompts,
       loadExamplePrompt,
       stopCompletion,
@@ -368,7 +390,9 @@ export default {
       emptyPromptBox,
       errorMessage,
       retryCompletion,
-      promptParams
+      promptParams,
+      triggerCompletion,
+      handlePaste
     }
   }
 }
@@ -399,5 +423,11 @@ export default {
 .transition-token-opacity {
   opacity: 1;
   transition: opacity 0.3s ease;
+}
+
+.ui-control-button-default {
+  @apply p-1 bg-teal-600 hover:bg-teal-700 duration-300 text-white mr-2 font-light;
+  @apply px-2 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500;
+  @apply transition-transform duration-100 transform hover:scale-110 text-base;
 }
 </style>
