@@ -169,7 +169,7 @@ export default {
     const sessionId = ref(undefined)
 
     const promptBoxContent = ref("")
-    const promptBoxArea = ref()
+    const promptBoxArea = ref('')
     const isCompletionInProgress = ref(false);
     const errorMessage = ref("")
     const completionHistory = ref([])
@@ -249,7 +249,7 @@ export default {
 
     // Add token/text to promptBoxArea using smooth fade in 
     function writePromptBox(text) {
-      const lines = text.split(/(\n)/)
+      const lines = text.split(/(\n)/).filter(line => line !== '')
       lines.forEach((line) => {
         if (line == '\n') {
           promptBoxArea.value.innerText += '\n';
@@ -297,7 +297,9 @@ export default {
     }
 
     async function doCompletion() {
-      completionHistory.value.push(promptBoxArea.value.innerText.slice())
+      if(promptBoxArea.value)
+        completionHistory.value.push(promptBoxArea.value.innerText.slice())
+      
       errorMessage.value = ''
       const requestBody = buildCompletionRequest()
 
