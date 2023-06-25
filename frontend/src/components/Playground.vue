@@ -7,7 +7,7 @@
     <div class="flex h-full ">
       <div class="flex-grow w-full h-full pb-10 bg-gray-50 p-4">
         <h2 class="flex justify-start text-xl font-bold mb-4">LLaMA Playground<div
-            :class="{ 'hidden': !isCompletionInProgress }"><svg fill="rgb(20 184 166)" width="24" height="24"
+            :class="{ 'hidden': !state.isCompletionInProgress }"><svg fill="rgb(20 184 166)" width="24" height="24"
               viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <circle class="spinner_I8Q1" cx="4" cy="12" r="1.5" />
               <circle class="spinner_I8Q1 spinner_vrS7" cx="12" cy="12" r="3" />
@@ -117,7 +117,7 @@
     <div class="flex p-2 pt-4 pl-4">
 
       <!-- Undo button -->
-      <button class="ui-control-button-default" :class="{ 'opacity-50': isCompletionInProgress }"
+      <button class="ui-control-button-default" :class="{ 'opacity-50': state.isCompletionInProgress }"
         @click="undoCompletion()">
         <div class="w-5 h-5 ">
           <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
@@ -128,7 +128,7 @@
       </button>
 
       <!-- Retry button -->
-      <button class="ui-control-button-default" :class="{ 'opacity-50': isCompletionInProgress }"
+      <button class="ui-control-button-default" :class="{ 'opacity-50': state.isCompletionInProgress }"
         @click="retryCompletion()">
         <div class="w-5 h-5 ">
           <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
@@ -141,12 +141,12 @@
       </button>
 
       <!-- Submit button -->
-      <button class="ui-control-button-default" :class="{ 'bg-teal-700': isCompletionInProgress }"
-        @click="isCompletionInProgress ? stopCompletion() : doCompletion()">
-        {{ isCompletionInProgress ? "Cancel" : "Submit" }}
+      <button class="ui-control-button-default" :class="{ 'bg-teal-700': state.isCompletionInProgress }"
+        @click="state.isCompletionInProgress ? stopCompletion() : doCompletion()">
+        {{ state.isCompletionInProgress ? "Cancel" : "Submit" }}
       </button>
 
-      <p class="pl-4 align-middle text-red-600" :class="{ 'visible': errorMessage }"> {{ errorMessage }} </p>
+      <p class="pl-4 align-middle text-red-600" :class="{ 'visible': state.errorMessage }"> {{ state.errorMessage }} </p>
     </div>
     <p class="absolute mt-4 right-10 hidden md:block "><a
         href="https://github.com/ggerganov/llama.cpp/tree/master/examples/server" target="_blank">More info:
@@ -156,7 +156,7 @@
 
 <script>
 import { nextTick, ref, reactive, onMounted } from 'vue'
-import { completionApiEndpoint, samplePrompts, promptParams } from "../utils/configs";
+import { pingApiEndpoint, completionApiEndpoint, samplePrompts, promptParams } from "../utils/configs";
 import PopOver from "../components/PopOver.vue"
 
 export default {
@@ -165,31 +165,32 @@ export default {
     PopOver
   },
   setup(props) {
-    const pingMode = ref(false) // for proxy
-    const sessionId = ref(undefined)
-
-    const promptBoxContent = ref("")
     const promptBoxArea = ref('')
-    const isCompletionInProgress = ref(false);
-    const errorMessage = ref("")
-    const completionHistory = ref([])
 
-    function simulateCompletion() {
-      completionHistory.value.push(promptBoxArea.value.innerText.slice())
-      writePromptBox("Hello\n")
-      completionHistory.value.push(promptBoxArea.value.innerText.slice())
-      writePromptBox("This\n")
-      console.log(promptBoxArea.value.textContent)
-      completionHistory.value.push(promptBoxArea.value.innerText.slice())
-      writePromptBox("is all!")
-    }
+    const state = reactive({
+      pingMode : false,
+      sessionID: undefined,
+      isCompletionInProgress : false,
+      errorMessage : "",
+      completionHistory : []
+    })
 
     onMounted(() => {
       generateSessionId() // session id for register instance in proxy
-      console.info("Session ID:", sessionId.value)
+      console.info("Session ID:", state.sessionID)
       document.addEventListener('keyup', triggerCompletion);
       setInterval(ImHere, 5000)
     })
+
+    function simulateCompletion() {
+      state.completionHistory.push(promptBoxArea.value.innerText.slice())
+      writePromptBox("Hello\n")
+      state.completionHistory.push(promptBoxArea.value.innerText.slice())
+      writePromptBox("This\n")
+      console.log(promptBoxArea.value.textContent)
+      state.completionHistory.push(promptBoxArea.value.innerText.slice())
+      writePromptBox("is all!")
+    }
 
     function updateValue(event) {
       promptBoxArea.value = event.target;
@@ -200,9 +201,9 @@ export default {
     }
 
     function undoCompletion() {
-      if (completionHistory.value.length) {
+      if (state.completionHistory.length) {
         stopCompletion()
-        promptBoxArea.value.innerText = completionHistory.value.pop()
+        promptBoxArea.value.innerText = state.completionHistory.pop()
         completionModeOff()
         console.info("⏪ Undo completion")
       }
@@ -217,17 +218,17 @@ export default {
 
     function completionModeOn() {
       promptBoxArea.value.contentEditable = false
-      isCompletionInProgress.value = true
+      state.isCompletionInProgress = true
     }
 
     function completionModeOff() {
       promptBoxArea.value.contentEditable = true
-      isCompletionInProgress.value = false
+      state.isCompletionInProgress = false
       scrollTextAreaToBottom()
     }
 
     async function stopCompletion() {
-      if (!isCompletionInProgress.value) {
+      if (!state.isCompletionInProgress) {
         return false
       }
       completionModeOff()
@@ -281,7 +282,7 @@ export default {
         stream: promptParams.stream.value,
         seed: promptParams.seed.value,
         mirostat: promptParams.mirostat.value,
-        sessionID: sessionId.value
+        sessionID: state.sessionID
       }
       if (promptParams.interactive.value) {
         requestBody.stop = [promptParams.stop_words.value]
@@ -292,15 +293,15 @@ export default {
     // Press ctrl+enter for start or stop the completion
     function triggerCompletion(event) {
       if (event.ctrlKey && event.key === 'Enter') {
-        isCompletionInProgress.value ? stopCompletion() : doCompletion()
+        state.isCompletionInProgress ? stopCompletion() : doCompletion()
       }
     }
 
     async function doCompletion() {
       if(promptBoxArea.value)
-        completionHistory.value.push(promptBoxArea.value.innerText.slice())
+        state.completionHistory.push(promptBoxArea.value.innerText.slice())
       
-      errorMessage.value = ''
+      state.errorMessage = ''
       const requestBody = buildCompletionRequest()
 
       stopCompletion()
@@ -308,7 +309,7 @@ export default {
       console.info("📨 Submiting params:", requestBody)
       const result = await sendRequest(completionApiEndpoint, 'POST', requestBody)
       if (!result.ok) {
-        errorMessage.value = "Error submiting the prompt, try again."
+        state.errorMessage = "Error submiting the prompt, try again."
         return completionModeOff()
       }
       try {
@@ -321,19 +322,19 @@ export default {
             console.info("🏁 Completion finished.")
             return completionModeOff()
           }
-          if (!isCompletionInProgress.value) return
+          if (!state.isCompletionInProgress) return
           const data = new TextDecoder('utf-8').decode(value);
           let token;
           try {
             token = JSON.parse(data.replace("data: ", ""));
           } catch (error) {
             console.error("❌ Error parsing token:", error, data);
-            errorMessage.value = "Error parsing token, please try again.";
+            state.errorMessage = "Error parsing token, please try again.";
             return completionModeOff()
           }
           if (token.error) {
             console.error(token.error)
-            errorMessage.value = "Error, please try again."
+            state.errorMessage = "Error, please try again."
           }
           writePromptBox(token.content)
           scrollTextAreaToBottom()
@@ -342,14 +343,14 @@ export default {
         return reader.read().then(processStream)
       } catch (error) {
         console.error("❌ Error while stream the completion:", error)
-        errorMessage.value = "Error while stream completion, try again..."
+        state.errorMessage = "Error while stream completion, try again..."
       }
       completionModeOff()
     }
     
     function handlePaste(event) {
-      event.preventDefault(); // Evita la acción de pegar predeterminada
-      const plainText = event.clipboardData.getData('text/plain'); // Obtiene el texto sin formato del portapapeles
+      event.preventDefault(); 
+      const plainText = event.clipboardData.getData('text/plain');
       promptBoxArea.value.innerText += plainText
       completionModeOff()
     }
@@ -365,32 +366,30 @@ export default {
     }
 
     const generateSessionId = () => {
-      sessionId.value = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      state.sessionID = Math.random().toString(36).substring(2) + Date.now().toString(36);
     }
 
     async function ImHere() {
-      if (pingMode.value) return
+      if (state.pingMode) return
       try {
-        const response = await fetch(`/api/imhere/${sessionId.value}`, { method: 'GET' })
-        if (response.status == 404) {
-          pingMode.value = true
+        const response = await fetch(`${pingApiEndpoint}/${state.sessionID}`, { method: 'GET' })
+        if (!response.ok) {
+          state.pingMode = true
           console.log("[-] No reverse proxy backend running detected, omitting ping.")
         }
       } catch (err) { }
     }
 
     return {
+      state,
       doCompletion,
-      promptBoxContent,
       promptBoxArea,
-      isCompletionInProgress,
       samplePrompts,
       loadExamplePrompt,
       stopCompletion,
       updateValue,
       undoCompletion,
       emptyPromptBox,
-      errorMessage,
       retryCompletion,
       promptParams,
       triggerCompletion,
@@ -399,7 +398,7 @@ export default {
   }
 }
 </script>
-<style>
+<style scoped>
 /* Loading spinner */
 .spinner_I8Q1 {
   animation: spinner_qhi1 .75s linear infinite

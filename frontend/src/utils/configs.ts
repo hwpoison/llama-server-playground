@@ -10,7 +10,9 @@ const prompts = {
 }
 
 const defaultInterjectWord = "### Human:"
+
 const completionApiEndpoint = '/api/completion'
+const pingApiEndpoint = '/api/imhere'
 
 // prompt parameters
 const promptParams = reactive({
@@ -65,4 +67,4 @@ let samplePrompts = reactive({})
 
 Object.assign(samplePrompts, prompts)
 
-export { completionApiEndpoint, samplePrompts, promptParams, defaultInterjectWord }
+export { completionApiEndpoint, samplePrompts, promptParams, defaultInterjectWord, pingApiEndpoint }
