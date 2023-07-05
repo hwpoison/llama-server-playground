@@ -398,7 +398,7 @@ export default {
   }
 }
 </script>
-<style scoped>
+<style>
 /* Loading spinner */
 .spinner_I8Q1 {
   animation: spinner_qhi1 .75s linear infinite
