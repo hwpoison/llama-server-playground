@@ -1,0 +1,13 @@
+server:
+  executable: server.exe
+  ip: http://127.0.0.1
+  args:
+    max_ctx: 1024
+    additionals: --mlock
+    
+model_folder : model
+models:
+  openllama3b: open-llama-3b-q4_0.bin
+  wizard7b: WizardLM-7B-uncensored.ggml.q5_1.bin
+default_model: openllama3b
+
